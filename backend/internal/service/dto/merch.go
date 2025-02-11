@@ -2,8 +2,8 @@ package dto
 
 import "github.com/google/uuid"
 
-type BuyRequest struct {
-	Username uuid.UUID
+type BuyMerchRequest struct {
+	UserID uuid.UUID
 	MerchName string
 }
 

@@ -3,9 +3,9 @@ package entity
 import "github.com/google/uuid"
 
 type Merch struct {
-	ID uuid.UUID
+	ID      uuid.UUID
 	OwnerID uuid.UUID
-	Name string
-	Cost int32
-	Amount int16
+	Type    string
+	Cost    int32
+	Amount  int16
 }

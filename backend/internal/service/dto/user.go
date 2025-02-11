@@ -6,12 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetInfoRequest struct {
-	Username uuid.UUID
+type GetUserInfoRequest struct {
+	UserID uuid.UUID
 }
 
-type GetInfoResponse struct {
-	UserInfo []*struct {
+type GetUserInfoResponse struct {
+	UserInfo *struct {
 		Coins       int32
 		Inventory   []*entity.Merch
 		CoinHistory *struct {

@@ -2,8 +2,9 @@ package dto
 
 import "github.com/google/uuid"
 
-type SendRequest struct {
-	ToUserID uuid.UUID
+type SendCoinsRequest struct {
+	UserID uuid.UUID
+	ToUserUsername   string
 	CoinsAmount int32
 }
 
