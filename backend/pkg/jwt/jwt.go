@@ -1,33 +1,53 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
 type JwtPayload struct {
-	Id       string
+	Id string
 	// Username string
 	// Role     string
+}
+
+type ManagerIntf interface {
+	GenerateAuthToken(id uuid.UUID) (tokenString string, err error)
+	VerifyAuthToken(tokenString, jwtKey string) (payload *JwtPayload, err error)
+	GetStringClaimFromJWT(ctx context.Context, claim string) (strVal string, err error)
+}
+
+type JwtManager struct {
+	jwtKey      string
+	expTimeHour int
+}
+
+func NewJwtManager(jwtKey string, expTimeHour int) ManagerIntf {
+	return &JwtManager{
+		jwtKey:      jwtKey,
+		expTimeHour: expTimeHour,
+	}
 }
 
 var (
 	ErrJWTInit = errors.New("failed to init jwt key")
 )
 
-func GenerateAuthToken(id uuid.UUID, jwtKey string) (tokenString string, err error) {
+func (m *JwtManager) GenerateAuthToken(id uuid.UUID) (tokenString string, err error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"id":   id.String(),
-			"exp":  time.Now().Add(time.Hour * 24).Unix(),
+			"id":  id.String(),
+			"exp": time.Now().Add(time.Duration(m.expTimeHour) * time.Hour).Unix(),
 		})
 
-	tokenString, err = token.SignedString([]byte(jwtKey))
+	tokenString, err = token.SignedString([]byte(m.jwtKey))
 
 	if err != nil {
 		return "", ErrJWTInit
@@ -36,14 +56,11 @@ func GenerateAuthToken(id uuid.UUID, jwtKey string) (tokenString string, err err
 	return tokenString, nil
 }
 
-func VerifyAuthToken(tokenString, jwtKey string) (payload *JwtPayload, err error) {
-	//fmt.Println(tokenString, "===")
-	//tokenString = "1"
+func (m *JwtManager) VerifyAuthToken(tokenString, jwtKey string) (payload *JwtPayload, err error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(jwtKey), nil
 	})
 
-	//fmt.Println(token, err)
 	if err != nil {
 		return nil, fmt.Errorf("парсинг токена: %w", err)
 	}
@@ -55,11 +72,26 @@ func VerifyAuthToken(tokenString, jwtKey string) (payload *JwtPayload, err error
 	payload = new(JwtPayload)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		payload.Id = fmt.Sprintf("%v", claims["id"])
-		// payload.Username = fmt.Sprint(claims["sub"])
-		// payload.Role = fmt.Sprint(claims["role"])
 	}
 
-	//fmt.Println(payload, "payload")
-
 	return payload, nil
+}
+
+func (m *JwtManager) GetStringClaimFromJWT(ctx context.Context, claim string) (strVal string, err error) {
+	_, claims, err := jwtauth.FromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id, ok := claims[claim]
+	if !ok {
+		return "", fmt.Errorf("failed getting claim '%s' from JWT token", claim)
+	}
+
+	strVal, ok = id.(string)
+	if !ok {
+		return "", fmt.Errorf("converting interface to string")
+	}
+
+	return strVal, nil
 }

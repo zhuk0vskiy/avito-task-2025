@@ -73,7 +73,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
             select id from users where username = $1
         )
         update users 
-        set coins_amount = coins_amount - $2
+        set coins_amount = coins_amount + $2
         where id = (select id from user_data)
         returning coins_amount, id`
 	err = tx.QueryRow(
@@ -113,7 +113,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 }
 
 func (s *TransactionStrg) GetByFromUserID(ctx context.Context, request *strgDto.GetTransactionByFromUserIDRequest) (response *strgDto.GetTransactionByToUserIDResponse, err error) {
-query := `select transactions.from_user_id, transactions.coins_amount from transactions join users on transactions.from_user_id = users.id where transactions.to_user_id = $1`
+query := `select users.username, transactions.coins_amount from transactions join users on transactions.from_user_id = users.id where transactions.to_user_id = $1`
 
 	rows, err := s.dbConnector.Query(
 		ctx,
@@ -129,7 +129,7 @@ query := `select transactions.from_user_id, transactions.coins_amount from trans
 	for rows.Next() {
 		transaction := entity.Transaction{}
 		err = rows.Scan(
-			&transaction.FromUserID,
+			&transaction.FromUsername,
 			&transaction.CoinsAmount,
 		)
 		if err != nil {
@@ -146,7 +146,7 @@ query := `select transactions.from_user_id, transactions.coins_amount from trans
 }
 
 func (s *TransactionStrg) GetByToUserID(ctx context.Context, request *strgDto.GetTransactionByToUserIDRequest) (response *strgDto.GetTransactionByToUserIDResponse, err error) {
-	query := `select transactions.to_user_id, transactions.coins_amount from transactions join users on transactions.to_user_id = users.id where transactions.from_user_id = $1`
+	query := `select users.username, transactions.coins_amount from transactions join users on transactions.to_user_id = users.id where transactions.from_user_id = $1`
 
 	rows, err := s.dbConnector.Query(
 		ctx,
@@ -162,7 +162,7 @@ func (s *TransactionStrg) GetByToUserID(ctx context.Context, request *strgDto.Ge
 	for rows.Next() {
 		transaction := entity.Transaction{}
 		err = rows.Scan(
-			&transaction.ToUserID,
+			&transaction.ToUsername,
 			&transaction.CoinsAmount,
 		)
 		if err != nil {

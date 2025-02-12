@@ -5,8 +5,6 @@ import (
 	"avito-task-2025/backend/internal/storage"
 	strgDto "avito-task-2025/backend/internal/storage/dto"
 
-	// "avito-task-2025/backend/internal/storage/postgres"
-	// "avito-task-2025/backend/pkg/jwt"
 	"avito-task-2025/backend/pkg/jwt"
 	"avito-task-2025/backend/pkg/logger"
 	"context"
@@ -32,16 +30,16 @@ type AuthIntf interface {
 }
 
 type AuthSvc struct {
-	logger   logger.Interface
-	userIntf storage.UserIntf
-	jwtKey   string
+	logger     logger.Interface
+	jwtManager jwt.ManagerIntf
+	userIntf   storage.UserIntf
 }
 
-func NewAuthSvc(logger logger.Interface, userIntf storage.UserIntf, jwtKey string) AuthIntf {
+func NewAuthSvc(logger logger.Interface, jwtManager jwt.ManagerIntf, userIntf storage.UserIntf) AuthIntf {
 	return &AuthSvc{
-		logger:   logger,
-		userIntf: userIntf,
-		jwtKey: jwtKey,
+		logger:     logger,
+		jwtManager: jwtManager,
+		userIntf:   userIntf,
 	}
 }
 
@@ -88,7 +86,7 @@ func (s *AuthSvc) SignIn(ctx context.Context, request *svcDto.SignInRequest) (re
 		}
 	}
 
-	token, err := jwt.GenerateAuthToken(user.ID, s.jwtKey)
+	token, err := s.jwtManager.GenerateAuthToken(user.ID)
 	if err != nil {
 		s.logger.Errorf(ErrGenerateJWT.Error())
 		return nil, ErrGenerateJWT

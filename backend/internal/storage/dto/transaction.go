@@ -8,7 +8,7 @@ import (
 
 type InsertTransactionRequest struct {
 	FromUserID  uuid.UUID
-	ToUsername    string
+	ToUsername  string
 	CoinsAmount int32
 }
 

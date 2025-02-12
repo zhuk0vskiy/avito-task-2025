@@ -1,0 +1,21 @@
+logger:
+  level: info
+  file: "out.log"
+
+http:
+  address: localhost
+  port: 8080
+  readTimeout: 5
+  # writeTimeout: 5
+
+jwt:
+  key:
+  expTimeHour: 12
+
+database:
+  postgres:
+    driver: postgres
+    host: localhost
+    port: 5438
+    context:
+      timeoutSec: 5 

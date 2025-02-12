@@ -7,5 +7,5 @@ type Merch struct {
 	OwnerID uuid.UUID
 	Type    string
 	Cost    int32
-	Amount  int16
+	Amount  uint16
 }

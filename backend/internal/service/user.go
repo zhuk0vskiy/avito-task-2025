@@ -84,22 +84,14 @@ func (s *UserSvc) GetInfo(ctx context.Context, request *svcDto.GetUserInfoReques
 		Sent: sentCoins.Transactions,
 	}
 
-	userInfo := struct {
-		Coins       int32
-		Inventory   []*entity.Merch
-		CoinHistory *struct {
-			Received []*entity.Transaction
-			Sent     []*entity.Transaction
-		}
-	}{
+	response = &svcDto.GetUserInfoResponse{
 		Coins: coins.Amount,
 		Inventory: inventory.Merchs,
 		CoinHistory: &coinHistory,
 	}
 
-	response = &svcDto.GetUserInfoResponse{
-		UserInfo: &userInfo,
-	}
+	
+
 
 	return response, nil
 

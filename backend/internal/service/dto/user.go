@@ -11,12 +11,10 @@ type GetUserInfoRequest struct {
 }
 
 type GetUserInfoResponse struct {
-	UserInfo *struct {
-		Coins       int32
-		Inventory   []*entity.Merch
-		CoinHistory *struct {
-			Received []*entity.Transaction
-			Sent     []*entity.Transaction
-		}
+	Coins       uint32
+	Inventory   []*entity.Merch
+	CoinHistory *struct {
+		Received []*entity.Transaction
+		Sent     []*entity.Transaction
 	}
 }

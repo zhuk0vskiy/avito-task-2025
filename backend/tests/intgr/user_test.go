@@ -7,6 +7,7 @@ import (
 	"avito-task-2025/backend/pkg/jwt"
 	loggerMock "avito-task-2025/backend/pkg/logger/mocks"
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// success get user info
+// success get user
 func TestGetUserSuccess_01(t *testing.T) {
 
 	mockLogger := new(loggerMock.Interface)
@@ -69,6 +70,18 @@ func TestGetUserSuccess_01(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	fmt.Println(getResponse.UserInfo.Coins)
+	for _, i := range getResponse.UserInfo.Inventory {
+		fmt.Println(i)
+	}
+	for _, i := range getResponse.UserInfo.CoinHistory.Received {
+		fmt.Println(i.FromUsername)
+	}
+	for _, i := range getResponse.UserInfo.CoinHistory.Sent {
+		fmt.Println(i.ToUsername)
+	}
+	
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, getResponse)
