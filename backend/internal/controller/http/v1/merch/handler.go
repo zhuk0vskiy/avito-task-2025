@@ -1,30 +1,31 @@
-package v1
+package merch
 
 import (
 	"avito-task-2025/backend/internal/app"
 	"avito-task-2025/backend/internal/controller"
 	svcDto "avito-task-2025/backend/internal/service/dto"
-	"encoding/json"
 
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
-func SendCoinHandler(a *app.App) http.HandlerFunc {
+type BuyMerchResponse struct {
+}
+
+
+type BuyMerchRequest struct {
+	Item string `json:"item"`
+}
+
+
+func BuyMerchHandler(a *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//start := time.Now()
 
 		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
-
-		var httpReq SendCoinRequest
-
-		err := json.NewDecoder(r.Body).Decode(&httpReq)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
 
 		id, err := a.JwtIntf.GetStringClaimFromJWT(r.Context(), "id")
 		if err != nil {
@@ -37,12 +38,14 @@ func SendCoinHandler(a *app.App) http.HandlerFunc {
 			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
 			return
 		}
-		req := &svcDto.SendCoinsRequest{
-			UserID:         uuID,
-			ToUserUsername: httpReq.ToUser,
-			CoinsAmount:    httpReq.Amount,
+
+		item := chi.URLParam(r, "item")
+
+		req := &svcDto.BuyMerchRequest{
+			UserID:    uuID,
+			MerchName: item,
 		}
-		err = a.CoinSvcIntf.Send(r.Context(), req)
+		err = a.MerchSvcIntf.Buy(r.Context(), req)
 		if err != nil {
 			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
 			return

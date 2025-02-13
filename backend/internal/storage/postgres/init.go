@@ -12,7 +12,7 @@ import (
 
 var (
 	errDbConnect = errors.New("failed to connect to db")
-	errDbPing = errors.New("failed tp ping db")
+	errDbPing = errors.New("failed to ping db")
 )
 
 func NewDbConn(ctx context.Context, cfg *config.PostgresConfig) (pool *pgxpool.Pool, err error) {
@@ -32,6 +32,7 @@ func NewDbConn(ctx context.Context, cfg *config.PostgresConfig) (pool *pgxpool.P
 
 	err = pool.Ping(ctx)
 	if err != nil {
+		fmt.Println(err)
 		return nil, errDbPing
 	}
 

@@ -10,18 +10,19 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/jwtauth/v5"
 )
 
-const envPath = "../.env"
+const envPath = "./.env"
 
 func main() {
 	c, err := config.NewConfig(envPath)
 	if err != nil {
-
+		log.Fatal(err)
 	}
 
 	loggerFile, err := os.OpenFile(
@@ -48,6 +49,7 @@ func main() {
 
 	s := server.NewServer(c.Http, tokenAuth, a)
 
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	go s.Start()
 
 	quit := make(chan os.Signal, 1)

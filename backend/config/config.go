@@ -1,8 +1,13 @@
 package config
 
 import (
+	"fmt"
+	"log"
 	"os"
 
+	// "log"
+
+	// "github.com/joho/godotenv"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 )
@@ -12,24 +17,23 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Jwt      JwtConfig      `yaml:"jwt"`
 	Http     HTTPConfig     `yaml:"http"`
-	Context  ContextConfig  `yaml:"context"`
 }
 
 type JwtConfig struct {
 	Key         string `yaml:"key" env:"JWT_KEY"`
-	ExpTimeHour int    `yaml:"expTimeHour" env:"JWT_EXP_TIME_HOUR"`
+	ExpTimeHour int    `yaml:"expTimeHour"`
 }
 
 type LoggerConfig struct {
-	Level string `yaml:"level" env:"LOGGER_LEVEL" env-default:"info"`
-	File  string `yaml:"file" env:"LOGGER_FILE" env-default:"out.log"`
+	Level string `yaml:"level"`
+	File  string `yaml:"file" env:"LOGS_FILE"`
 }
 
 type HTTPConfig struct {
-	Address      string `yaml:"address" env:"HTTP_ADDRESS_" env-default:"localhost"`
+	Address      string `yaml:"address" env:"HTTP_ADDRESS" env-default:"localhost"`
 	Port         string `yaml:"port" env:"HTTP_PORT" env-default:"8080"`
-	ReadTimeout  int    `yaml:"readTimeout" env:"READ_TIMEOUT" env-default:"5"`
-	WriteTimeout int    `yaml:"writeTimeout" env:"WRITE_TIMEOUT" env-default:"5"`
+	ReadTimeout  int    `yaml:"readTimeout"`
+	WriteTimeout int    `yaml:"writeTimeout"`
 }
 
 type DatabaseConfig struct {
@@ -37,16 +41,12 @@ type DatabaseConfig struct {
 }
 
 type PostgresConfig struct {
-	Host     string `yaml:"host" env:"POSTGRES_HOST" env-default:"localhost"`
-	Port     int    `yaml:"port" env:"POSTGRES_PORT" env-default:"5438"`
-	User     string
-	Password string
-	Database string
+	Host     string `yaml:"host" env:"POSTGRES_HOST"`
+	Port     int    `yaml:"port" env:"POSTGRES_PORT"`
+	User     string `yaml:"user" env:"POSTGRES_USER"`
+	Password string `yaml:"password" env:"POSTGRES_PASSWORD"`
+	Database string `yaml:"database" env:"POSTGRES_DATABASE"`
 	Driver   string `yaml:"driver" env:"POSTGRES_DRIVER" env-default:"postgres"`
-}
-
-type ContextConfig struct {
-	TimeoutSec int `yaml:"timeoutSec"`
 }
 
 func NewConfig(envPath string) (*Config, error) {
@@ -55,10 +55,12 @@ func NewConfig(envPath string) (*Config, error) {
 
 	err = godotenv.Load(envPath)
 	if err != nil {
-		return nil, err
+		log.Println(".env not find, using os environment")
 	}
 
 	configPath := os.Getenv("CONFIG_PATH")
+
+	fmt.Println(configPath)
 
 	// viper.SetConfigFile(configPath)
 
@@ -75,11 +77,18 @@ func NewConfig(envPath string) (*Config, error) {
 		return nil, err
 	}
 
-	config.Jwt.Key = os.Getenv("JWT_KEY")
-	config.Database.Postgres.User = os.Getenv("POSTGRES_USER")
-	config.Database.Postgres.Password = os.Getenv("POSTGRES_PASSWORD")
-	config.Database.Postgres.Database = os.Getenv("POSTGRES_DATABASE")
+	// config.Jwt.Key = os.Getenv("JWT_KEY")
+	// config.Database.Postgres.User = os.Getenv("POSTGRES_USER")
+	// config.Database.Postgres.Password = os.Getenv("POSTGRES_PASSWORD")
+	// config.Database.Postgres.Database = os.Getenv("POSTGRES_DATABASE")
+	// config.Database.Postgres.Host = os.Getenv("POSTGRES_HOST")
 
+	// postgresPort, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// config.Database.Postgres.Port = postgresPort
+	// fmt.Println(config.Database.Postgres.Port)
 	return &config, nil
 
 }

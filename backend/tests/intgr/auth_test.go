@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"avito-task-2025/backend/pkg/jwt"
 	loggerMock "avito-task-2025/backend/pkg/logger/mocks"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,9 @@ func TestSignInSuccess_01(t *testing.T) {
 
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
-	authService := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
+
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 
 	req := &svcDto.SignInRequest{
 		Username: "test1",
@@ -43,12 +46,11 @@ func TestSignInSuccess_01(t *testing.T) {
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
 
-	response, err := authService.SignIn(ctx, req)
+	response, err := authSvcIntf.SignIn(ctx, req)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, response)
 }
-
 
 // success sign up and log in
 func TestSignInSuccess_02(t *testing.T) {
@@ -66,7 +68,9 @@ func TestSignInSuccess_02(t *testing.T) {
 
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
-	authService := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
+
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 
 	req := &svcDto.SignInRequest{
 		Username: "test2",
@@ -77,12 +81,12 @@ func TestSignInSuccess_02(t *testing.T) {
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
 
-	_, err = authService.SignIn(ctx, req)
+	_, err = authSvcIntf.SignIn(ctx, req)
 	if err != nil {
 		t.Error(err)
 	}
 
-	response, err := authService.SignIn(ctx, req)
+	response, err := authSvcIntf.SignIn(ctx, req)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, response)
@@ -104,7 +108,9 @@ func TestSignInFailed_01(t *testing.T) {
 
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
-	authService := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
+
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 
 	req := &svcDto.SignInRequest{
 		Username: "test3",
@@ -115,7 +121,7 @@ func TestSignInFailed_01(t *testing.T) {
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
 
-	_, err = authService.SignIn(ctx, req)
+	_, err = authSvcIntf.SignIn(ctx, req)
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,11 +130,8 @@ func TestSignInFailed_01(t *testing.T) {
 		Username: "test3",
 		Password: "test-",
 	}
-	response, err := authService.SignIn(ctx, req)
+	response, err := authSvcIntf.SignIn(ctx, req)
 
 	assert.Error(t, err)
 	assert.Empty(t, response)
 }
-
-
-

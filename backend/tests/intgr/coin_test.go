@@ -31,10 +31,10 @@ func TestSendCoinsSuccess_01(t *testing.T) {
 	}
 
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
-
 	transactionStrgIntf := postgres.NewTransactionStrg(dbConnector)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
 
-	authSvcIntf := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 	coinSvcIntf := service.NewCoinSvc(mockLogger, transactionStrgIntf)
 
 	req := &svcDto.SignInRequest{
@@ -52,7 +52,7 @@ func TestSendCoinsSuccess_01(t *testing.T) {
 	}
 	token := response.JwtToken
 
-	payload, err := jwt.VerifyAuthToken(token, cfg.JwtKey)
+	payload, err := jwtManager.VerifyAuthToken(token, cfg.Jwt.Key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,8 +88,9 @@ func TestSendCoinsFailed_01(t *testing.T) {
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
 	transactionStrgIntf := postgres.NewTransactionStrg(dbConnector)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
 
-	authSvcIntf := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 	coinSvcIntf := service.NewCoinSvc(mockLogger, transactionStrgIntf)
 
 	req := &svcDto.SignInRequest{
@@ -107,7 +108,7 @@ func TestSendCoinsFailed_01(t *testing.T) {
 	}
 	token := response.JwtToken
 
-	_, err = jwt.VerifyAuthToken(token, cfg.JwtKey)
+	_, err = jwtManager.VerifyAuthToken(token, cfg.Jwt.Key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -144,7 +145,9 @@ func TestSendCoinsFailed_02(t *testing.T) {
 
 	transactionStrgIntf := postgres.NewTransactionStrg(dbConnector)
 
-	authSvcIntf := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
+
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 	coinSvcIntf := service.NewCoinSvc(mockLogger, transactionStrgIntf)
 
 	req := &svcDto.SignInRequest{
@@ -161,8 +164,7 @@ func TestSendCoinsFailed_02(t *testing.T) {
 		t.Error(err)
 	}
 	token := response.JwtToken
-
-	payload, err := jwt.VerifyAuthToken(token, cfg.JwtKey)
+	payload, err := jwtManager.VerifyAuthToken(token, cfg.Jwt.Key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -197,8 +199,9 @@ func TestSendCoinsFailed_03(t *testing.T) {
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
 	transactionStrgIntf := postgres.NewTransactionStrg(dbConnector)
+	jwtManager := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
 
-	authSvcIntf := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
+	authSvcIntf := service.NewAuthSvc(mockLogger, jwtManager, userStrgIntf)
 	coinSvcIntf := service.NewCoinSvc(mockLogger, transactionStrgIntf)
 
 	req := &svcDto.SignInRequest{
@@ -216,7 +219,7 @@ func TestSendCoinsFailed_03(t *testing.T) {
 	}
 	token := response.JwtToken
 
-	payload, err := jwt.VerifyAuthToken(token, cfg.JwtKey)
+	payload, err := jwtManager.VerifyAuthToken(token, cfg.Jwt.Key)
 	if err != nil {
 		t.Error(err)
 	}

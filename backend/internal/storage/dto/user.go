@@ -5,7 +5,6 @@ import "github.com/google/uuid"
 type InsertUserRequest struct {
 	Username     string
 	HashPassword []byte
-	CoinsAmount  uint32
 }
 
 // type InsertUserResponse struct {
@@ -26,5 +25,5 @@ type GetCoinsByUserIDRequest struct {
 }
 
 type GetCoinsByUserIDResponse struct {
-	Amount uint32
+	Amount int32
 }

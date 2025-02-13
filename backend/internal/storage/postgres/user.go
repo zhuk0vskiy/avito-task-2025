@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ErrAddUser        = errors.New("failed to add user")
-	ErrGetUser        = errors.New("failed to get user")
-	ErrGetCoinsAmount = errors.New("failed to get user coins amount")
+	ErrAddUser         = errors.New("failed to add user")
+	ErrGetUserPassword = errors.New("failed to get user password")
+	ErrGetCoinsAmount  = errors.New("failed to get user coins amount")
 )
 
 type UserStrg struct {
@@ -28,14 +28,13 @@ func NewUserStrg(dbConnector *pgxpool.Pool) storage.UserIntf {
 }
 
 func (s *UserStrg) Insert(ctx context.Context, request *strgDto.InsertUserRequest) (err error) {
-	query := `insert into users(username, password, coins_amount) values ($1, $2, $3)`
+	query := `insert into users(username, password, coins_amount) values ($1, $2, 1000)`
 
 	_, err = s.dbConnector.Exec(
 		ctx,
 		query,
 		request.Username,
 		request.HashPassword,
-		request.CoinsAmount,
 	)
 	if err != nil {
 		return ErrAddUser
@@ -51,7 +50,7 @@ func (s *UserStrg) GetByUsername(ctx context.Context, request *strgDto.GetUserBy
         			else '\x'::bytea
     			end as password, id 
              from users 
-             where username = $1;`
+             where username = $1`
 
 	response = &strgDto.GetUserByUsernameResponse{}
 
@@ -65,7 +64,7 @@ func (s *UserStrg) GetByUsername(ctx context.Context, request *strgDto.GetUserBy
 	)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrGetCoinsAmount
+			return nil, ErrGetUserPassword
 		}
 
 	}

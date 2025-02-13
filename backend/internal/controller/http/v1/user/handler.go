@@ -1,4 +1,4 @@
-package v1
+package user
 
 import (
 	"avito-task-2025/backend/internal/app"
@@ -11,19 +11,42 @@ import (
 	"github.com/google/uuid"
 )
 
+type GetInfoRequest struct {
+
+}
+
+type GetInfoInventory struct {
+	Type     string `json:"type"`
+	Quantity int16  `json:"quantity"`
+}
+
+type CoinHistoryReceived struct {
+	FromUser string `json:"fromUser"`
+	Amount   int32  `json:"amount"`
+}
+
+type CoinHistorySent struct {
+	ToUser string `json:"toUser"`
+	Amount int32  `json:"amount"`
+}
+
+type CoinHistory struct {
+	Received []*CoinHistoryReceived `json:"received"`
+	Sent     []*CoinHistorySent     `json:"sent"`
+}
+
+type GetInfoResponse struct {
+	Coins       int32               `json:"coins"`
+	Inventory   []*GetInfoInventory `json:"inventory"`
+	CoinHistory *CoinHistory        `json:"coinHistory"`
+}
+
 func GetUserInfoHandler(a *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//start := time.Now()
 
 		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
 
-		// var httpReq SignInRequest
-
-		// err := json.NewDecoder(r.Body).Decode(&httpReq)
-		// if err != nil {
-		// 	controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-		// 	return
-		// }
 
 		id, err := a.JwtIntf.GetStringClaimFromJWT(r.Context(), "id")
 		if err != nil {

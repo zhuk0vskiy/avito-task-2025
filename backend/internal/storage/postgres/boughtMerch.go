@@ -16,19 +16,20 @@ import (
 var (
 	errBuyTransStart           = errors.New("failed to start buy merch trans")
 	errBuyTransRollback        = errors.New("failed to rollback buy merch trans")
-	errBuyDecreaseCoinsAmount  = errors.New("failed to decrease user coins amount to buy merch")
+	errBuyDecreaseCoinsAmount  = errors.New("user dont have enough coins")
 	errBuyNotEnoughMoney       = errors.New("user dont have enough money to by merch")
 	errBuyTransRecord          = errors.New("failed to insert bought merch record")
 	errBuyCommitTrans          = errors.New("failed to commit buy merch trans")
 	errGetAllBoughtMerchByUser = errors.New("falied to get user bought merchs")
 	errScanMerchRow            = errors.New("failed to scan bought merch row")
+	errInvalidMerchName        = errors.New("this merch doesnt exist")
+	errIncreaseBoughtMerchAmount     = errors.New("failed to increase bought merch amount")
 )
 
 var (
 	Test_errBuyDecreaseCoinsAmount = errBuyDecreaseCoinsAmount
-	Test_errBuyTransRecord = errBuyTransRecord
+	Test_errBuyTransRecord         = errBuyTransRecord
 )
-
 
 type BoughtMerchStrg struct {
 	dbConnector *pgxpool.Pool
@@ -41,6 +42,24 @@ func NewBoughtMerchStrg(dbConnector *pgxpool.Pool) storage.BoughtMerchIntf {
 }
 
 func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBoughtMerchRequest) (err error) {
+
+
+	var cost int
+	var merchID uuid.UUID
+
+	query := `select id, cost from merchs where type = $1`
+	err = s.dbConnector.QueryRow(
+		ctx,
+		query,
+		request.MerchName,
+	).Scan(
+		&merchID,
+		&cost,
+	)
+	if err != nil {
+		return errInvalidMerchName
+	}
+
 	tx, err := s.dbConnector.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return errBuyTransStart
@@ -55,22 +74,18 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 	}()
 
 	var coinsAmount int32
-	var merchID uuid.UUID
-	query := `with merch_data as (
-            	select id, cost from merchs where type = $1
-        	)
+	query = `
 			update users 
-			set coins_amount = coins_amount - (select cost from merch_data)
+			set coins_amount = coins_amount - $1
 			where id = $2
-			returning coins_amount, (select id from merch_data)`
+			returning coins_amount`
 	err = tx.QueryRow(
 		ctx,
 		query,
-		request.MerchName,
+		cost,
 		request.UserID,
 	).Scan(
 		&coinsAmount,
-		&merchID,
 	)
 	if err != nil {
 		return errBuyDecreaseCoinsAmount
@@ -78,20 +93,42 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 	if coinsAmount < 0 {
 		return errBuyNotEnoughMoney
 	}
-	fmt.Println(coinsAmount)
-	query = `insert into bought_merchs(user_id, merch_id, amount) 
-			values ($1, $2, 1)
-			on conflict (user_id, merch_id) 
-			do update set amount = bought_merchs.amount + 1`
 
-	_, err = tx.Exec(
+
+	var tmp *int
+	var merchsAmount int
+	fmt.Println(request.UserID, merchID)
+	query = `insert into bought_merchs(user_id, merch_id) 
+			values ($1, $2)
+			returning amount`
+	err = tx.QueryRow(
 		ctx,
 		query,
 		request.UserID,
 		merchID,
+	).Scan(
+		&tmp,
 	)
+
 	if err != nil {
 		return errBuyTransRecord
+	}
+
+	if tmp != nil {
+		merchsAmount = *tmp
+	} else {
+		merchsAmount = 0
+	}
+
+	merchsAmount++
+	query = `update bought_merchs set amount = $1`
+	_, err = tx.Exec(
+		ctx,
+		query,
+		merchsAmount,
+	)
+	if err != nil {
+		return errIncreaseBoughtMerchAmount
 	}
 
 	err = tx.Commit(ctx)
@@ -129,7 +166,6 @@ func (s *BoughtMerchStrg) GetByUserID(ctx context.Context, request *strgDto.GetB
 
 		merchs = append(merchs, &merch)
 	}
-
 
 	response = &strgDto.GetBoughtMerchByUserIDResponse{
 		Merchs: merchs,

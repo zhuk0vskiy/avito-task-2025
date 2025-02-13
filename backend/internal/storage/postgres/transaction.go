@@ -24,6 +24,7 @@ var (
 	ErrGetTransFromUser    = errors.New("failed to get trans from user")
 	ErrSelectQueryRow      = errors.New("error while quering select row")
 	ErrGetTransToUser      = errors.New("failed to get trans to user")
+	errGetUserIDbyUsername = errors.New("user with this username doesnt exists")
 )
 
 type TransactionStrg struct {
@@ -37,6 +38,21 @@ func NewTransactionStrg(dbConnector *pgxpool.Pool) storage.TransactionIntf {
 }
 
 func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTransactionRequest) (err error) {
+	
+
+	var receiverID uuid.UUID
+	query := `select id from users where username = $1`
+	err = s.dbConnector.QueryRow(
+		ctx,
+		query,
+		request.ToUsername,
+	).Scan(
+		&receiverID,
+	)
+	if err != nil {
+		return errGetUserIDbyUsername
+	}
+	
 	tx, err := s.dbConnector.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return ErrInsertTransStart
@@ -51,7 +67,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 	}()
 
 	var coinsAmount int32
-	query := `update users set coins_amount = coins_amount - $1 where id = $2 returning coins_amount`
+	query = `update users set coins_amount = coins_amount - $1 where id = $2 returning coins_amount`
 	err = tx.QueryRow(
 		ctx,
 		query,
@@ -69,26 +85,21 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 	}
 
 	var toUserID uuid.UUID
-	query = `with user_data as (
-            select id from users where username = $1
-        )
+	query = `
         update users 
-        set coins_amount = coins_amount + $2
-        where id = (select id from user_data)
+        set coins_amount = coins_amount + $1
+        where id = $2
         returning coins_amount, id`
 	err = tx.QueryRow(
 		ctx,
 		query,
-		request.ToUsername,
 		request.CoinsAmount,
+		receiverID,
 	).Scan(
 		&coinsAmount,
 		&toUserID,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrNoReceiveUser
-		}
 		return ErrIncreaseCoinsAmount
 	}
 

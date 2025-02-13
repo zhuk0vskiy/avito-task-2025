@@ -2,17 +2,18 @@ package service
 
 import (
 	svcDto "avito-task-2025/backend/internal/service/dto"
-	strgDto "avito-task-2025/backend/internal/storage/dto"
 	"avito-task-2025/backend/internal/storage"
+	strgDto "avito-task-2025/backend/internal/storage/dto"
 	"avito-task-2025/backend/pkg/logger"
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 var (
-	errEmptyMerchName = errors.New("merch name is emtpy")
+	errEmptyMerchName     = errors.New("merch name is emtpy")
 	errMerchInvalidUserID = errors.New("trying to buy merch with invalid UserID")
 )
 
@@ -44,10 +45,12 @@ func (s *MerchSvc) Buy(ctx context.Context, request *svcDto.BuyMerchRequest) (er
 		return errEmptyMerchName
 	}
 
+	s.logger.Debugf("before buy insert %s", time.Now().UnixMilli())
 	err = s.boughtMerchIntf.Insert(ctx, &strgDto.AddBoughtMerchRequest{
-		UserID: request.UserID,
+		UserID:    request.UserID,
 		MerchName: request.MerchName,
 	})
+	s.logger.Debugf("after buy insert %s", time.Now().UnixMilli())
 	if err != nil {
 		s.logger.Infof(err.Error())
 		return err

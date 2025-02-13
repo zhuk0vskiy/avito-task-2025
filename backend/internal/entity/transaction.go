@@ -6,5 +6,5 @@ type Transaction struct {
 	ID          uuid.UUID
 	FromUsername  string
 	ToUsername    string
-	CoinsAmount uint32
+	CoinsAmount int32
 }

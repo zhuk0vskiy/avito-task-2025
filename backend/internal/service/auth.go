@@ -4,6 +4,7 @@ import (
 	svcDto "avito-task-2025/backend/internal/service/dto"
 	"avito-task-2025/backend/internal/storage"
 	strgDto "avito-task-2025/backend/internal/storage/dto"
+	"time"
 
 	"avito-task-2025/backend/pkg/jwt"
 	"avito-task-2025/backend/pkg/logger"
@@ -63,27 +64,32 @@ func (s *AuthSvc) SignIn(ctx context.Context, request *svcDto.SignInRequest) (re
 	}
 
 	if len(user.HashPassword) == 0 {
-		hashPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+
+		s.logger.Debugf("before generate %s", time.Now().UnixMilli())
+		hashPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.MinCost)
 		if err != nil {
 			s.logger.Errorf(ErrGenerateHashPass.Error())
 			return nil, ErrGenerateHashPass
 		}
+		s.logger.Debugf("after generate %s", time.Now().UnixMilli())
 
 		err = s.userIntf.Insert(ctx, &strgDto.InsertUserRequest{
 			Username:     request.Username,
 			HashPassword: hashPassword,
-			CoinsAmount:  1000,
 		})
+
 		if err != nil {
 			s.logger.Errorf(ErrInsertUserIntoDb.Error())
 			return nil, ErrInsertUserIntoDb
 		}
 	} else {
+		s.logger.Debugf("before compare %s", time.Now().UnixMilli())
 		err = bcrypt.CompareHashAndPassword(user.HashPassword, []byte(request.Password))
 		if err != nil {
 			s.logger.Errorf(ErrIncorrectPassword.Error())
 			return nil, ErrIncorrectPassword
 		}
+		s.logger.Debugf("after compare %s", time.Now().UnixMilli())
 	}
 
 	token, err := s.jwtManager.GenerateAuthToken(user.ID)
@@ -91,6 +97,7 @@ func (s *AuthSvc) SignIn(ctx context.Context, request *svcDto.SignInRequest) (re
 		s.logger.Errorf(ErrGenerateJWT.Error())
 		return nil, ErrGenerateJWT
 	}
+
 	response = &svcDto.SignInResponse{
 		JwtToken: token,
 	}

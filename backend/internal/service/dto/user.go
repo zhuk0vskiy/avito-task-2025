@@ -11,7 +11,7 @@ type GetUserInfoRequest struct {
 }
 
 type GetUserInfoResponse struct {
-	Coins       uint32
+	Coins       int32
 	Inventory   []*entity.Merch
 	CoinHistory *struct {
 		Received []*entity.Transaction

@@ -1,32 +1,214 @@
 name: avito-task-2025
 
 services:
+    backend-post-1:
+      container_name: backend-post-1
+      # build: ./backend/
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: avito
+        POSTGRES_DATABASE: shop
+        POSTGRES_HOST: 172.20.2.1
+        POSTGRES_PORT: 5432
+        HTTP_PORT: 8081
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-master:
+            condition: service_healthy   
+      ports:
+        - "8081:8081"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.1
+      volumes:
+        - ./logs:/app/logs
+
+    backend-post-2:
+      container_name: backend-post-2
+      # build: ./backend/
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: avito
+        POSTGRES_DATABASE: shop
+        POSTGRES_HOST: 172.20.2.1
+        POSTGRES_PORT: 5432
+        HTTP_PORT: 8082
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-master:
+            condition: service_healthy   
+      ports:
+        - "8082:8082"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.2
+      volumes:
+        - ./logs:/app/logs
+      
+    backend-get-ro1:
+      container_name: backend-get-ro1
+      # build: ./backend/
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: admin_ro
+        POSTGRES_PASSWORD: avito_ro
+        POSTGRES_DATABASE: shop
+        POSTGRES_HOST: 172.20.2.2
+        POSTGRES_PORT: 5433
+        HTTP_PORT: 8083
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-slave-ro:
+            condition: service_healthy   
+      ports:
+        - "8083:8083"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.2
+      volumes:
+        - ./logs:/app/logs
+      
     postgres-master:
       container_name: postgres-master
       image: bitnami/postgresql:16
       healthcheck:
-        test: ["CMD-SHELL", "pg_isready -U admin"]
+        test: ["CMD-SHELL", "sh -c 'pg_isready -U admin -d shop'"]
         interval: 5s
         timeout: 5s
         retries: 5
       environment:
         POSTGRESQL_REPLICATION_MODE: master
         POSTGRESQL_REPLICATION_USER: repl_user
-        POSTGRESQL_REPLICATION_PASSWORD: avito
-        POSTGRES_DB: shop
-        POSTGRES_USER: admin
-        POSTGRES_PASSWORD: avito
+        POSTGRESQL_REPLICATION_PASSWORD: repl_avito
+        POSTGRES_DATABASE: shop
+        POSTGRES_USERNAME: postgres
+        POSTGRES_PASSWORD: postgres
+        
         POSTGRESQL_PORT: 5432
         TZ: "Europe/Moscow"
-      ports:
-        - "5438:5432"
-      restart: on-failure
       volumes:
         - ./db/postgres/init:/docker-entrypoint-initdb.d
         - ./db/postgres/data:/var/lib/postgresql/data
-#       networks:
-#       - avito-network
-  
-# networks:
-#   avito-network:
-#     driver: bridge
+      ports:
+        - "5438:5432"
+      networks:
+        avito:
+          ipv4_address: 172.20.2.1
+
+    postgres-slave-ro:
+      container_name: "postgres-slave-ro"
+      image: bitnami/postgresql:16
+      privileged: true
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -d shop -U admin_ro"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+      environment:
+        POSTGRESQL_REPLICATION_MODE: slave
+        POSTGRESQL_REPLICATION_USER: repl_user
+        POSTGRESQL_REPLICATION_PASSWORD: repl_avito
+        POSTGRESQL_MASTER_HOST: 172.20.2.1
+        POSTGRESQL_MASTER_PORT_NUMBER: 5432
+        POSTGRES_DB: shop
+        POSTGRES_USER: admin_ro
+        POSTGRES_PASSWORD: avito_ro
+        POSTGRESQL_PORT: 5433
+        
+        TZ: "Europe/Moscow"
+      depends_on:
+        postgres-master:
+          condition: service_healthy
+      ports:
+        - "5439:5433"
+      networks:
+        avito:
+          ipv4_address: 172.20.2.2
+
+
+    nginx:
+      container_name: nginx
+      image: nginx:1.27
+      ports:
+        - "8080:80"
+      volumes:
+        - ./nginx/conf:/etc/nginx
+        - ./nginx/logs:/etc/nginx/logs
+      depends_on:
+        backend-post-1:
+          condition: service_started
+        backend-post-2:
+          condition: service_started
+        # backend-get-ro1:
+        #   condition: service_started
+      networks:
+        avito:
+          ipv4_address: 172.20.22.1
+
+
+
+    # postgres-test:
+    #   container_name: postgres-test
+    #   image: bitnami/postgresql:16
+    #   healthcheck:
+    #     test: ["CMD-SHELL", "sh -c 'pg_isready -U test-admin -d test-shop'"]
+    #     interval: 5s
+    #     timeout: 5s
+    #     retries: 5
+    #   environment:
+    #     POSTGRES_DATABASE: test-shop
+    #     POSTGRES_USERNAME: postgres
+    #     POSTGRES_PASSWORD: postgres
+        
+    #     POSTGRESQL_PORT: 5432
+    #     TZ: "Europe/Moscow"
+    #   volumes:
+    #     - ./db/postgres/test_migration:/docker-entrypoint-initdb.d
+    #   ports:
+    #     - "5430:9999"
+    #   networks:
+    #     avito:
+    #       ipv4_address: 172.20.2.2
+
+
+    # load-testing-gatling:
+    #   image: denvazh/gatling
+    #   platform: linux/amd64
+    #   container_name: load-testing-gatling
+    #   volumes:
+    #     - ./load-testing/gatling/simulations:/opt/gatling/user-files/simulations
+    #     - ./load-testing/gatling/results:/opt/gatling/results
+    #     - ./load-testing/gatling/conf:/opt/gatling/conf
+
+    #   depends_on:
+    #     backend:
+    #         condition: service_started
+    #   entrypoint: ["/bin/sh", "-c", "gatling.sh -s ServerPerSecondLoadSimulation"]
+    #   ports:
+    #     - "10010:80"
+    #   networks:
+    #     avito:
+    #       ipv4_address: 172.20.3.1
+
+    # load-testing-locust:
+    #   image: locustio/locust:master
+    #   container_name: load-testing-locust
+    #   ports:
+    #     - "9001:8089"
+    #   volumes:
+    #     - ./load-testing/locust:/mnt/locust
+    #   # entrypoint: ["-f /mnt/locust/locustfile.py", "-u 100000", "-r 1000", "-H http://172.20.1.1"]
+    #   command: -f /mnt/locust/locustfile.py -u 100000 -r 1000 -H http://172.20.1.1
+
+    #   networks:
+    #     avito:
+    #       ipv4_address: 172.20.3.2
+
+networks:
+  avito:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

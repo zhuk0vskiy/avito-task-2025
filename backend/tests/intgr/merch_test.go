@@ -50,7 +50,7 @@ func TestMerchBuySuccess_01(t *testing.T) {
 	}
 	token := response.JwtToken
 
-	payload, err := jwt.VerifyAuthToken(token, cfg.JwtKey)
+	payload, err := jwtManager.VerifyAuthToken(token, cfg.Jwt.Key)
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,4 +1,4 @@
-package v1
+package auth
 
 import (
 	"avito-task-2025/backend/internal/app"
@@ -9,6 +9,15 @@ import (
 	"fmt"
 	"net/http"
 )
+
+type SignInRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type SignInResponse struct {
+	Token string `json:"token"`
+}
 
 func SignInHandler(a *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
