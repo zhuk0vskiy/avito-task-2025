@@ -50,7 +50,7 @@ func main() {
 	s := server.NewServer(c.Http, tokenAuth, a)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	go s.Start()
+	s.Start()
 
 	quit := make(chan os.Signal, 1)
 

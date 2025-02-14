@@ -1,14 +1,14 @@
 package coin
 
 import (
-	"avito-task-2025/backend/internal/app"
-	"avito-task-2025/backend/internal/controller"
+	"avito-task-2025/backend/internal/service"
 	svcDto "avito-task-2025/backend/internal/service/dto"
-	"encoding/json"
+	"avito-task-2025/backend/pkg/jwt"
+	"avito-task-2025/backend/pkg/logger"
 
-	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -20,44 +20,60 @@ type SendCoinRequest struct {
 type SendCoinResponse struct {
 }
 
+type Controller struct {
+	loggerIntf  logger.Interface
+	coinSvcIntf service.CoinIntf
+	jwtMngIntf  jwt.ManagerIntf
+}
 
-
-func SendCoinHandler(a *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//start := time.Now()
-
-		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
-
-		var httpReq SendCoinRequest
-
-		err := json.NewDecoder(r.Body).Decode(&httpReq)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		id, err := a.JwtIntf.GetStringClaimFromJWT(r.Context(), "id")
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-
-		uuID, err := uuid.Parse(id)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-		req := &svcDto.SendCoinsRequest{
-			UserID:         uuID,
-			ToUserUsername: httpReq.ToUser,
-			CoinsAmount:    httpReq.Amount,
-		}
-		err = a.CoinSvcIntf.Send(r.Context(), req)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		controller.SuccessResponse(wrappedWriter, http.StatusOK, nil)
+func NewCoinController(loggerIntf logger.Interface, coinSvcIntf service.CoinIntf, jwtMngIntf jwt.ManagerIntf) *Controller {
+	return &Controller{
+		loggerIntf:  loggerIntf,
+		coinSvcIntf: coinSvcIntf,
+		jwtMngIntf:  jwtMngIntf,
 	}
+}
+
+func (c *Controller) SendCoinHandler(ctx *gin.Context) {
+
+	var httpReq SendCoinRequest
+	var errorStr string
+
+	err := ctx.ShouldBindJSON(&httpReq)
+	if err != nil {
+		errorStr = "incorrect request body"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+
+	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx.Request.Context(), "id")
+	if err != nil {
+		errorStr = "cant claim id from token"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+
+	uuID, err := uuid.Parse(id)
+	if err != nil {
+		errorStr = "failed to parse id"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+	req := &svcDto.SendCoinsRequest{
+		UserID:         uuID,
+		ToUsername: httpReq.ToUser,
+		CoinsAmount:    httpReq.Amount,
+	}
+	err = c.coinSvcIntf.Send(ctx.Request.Context(), req)
+	if err != nil {
+		c.loggerIntf.Errorf("failed to send coins: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": err})
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+
 }

@@ -11,11 +11,12 @@ import (
 )
 
 type App struct {
+	Logger       logger.Interface
 	AuthSvcIntf  service.AuthIntf
 	UserSvcIntf  service.UserIntf
 	CoinSvcIntf  service.CoinIntf
 	MerchSvcIntf service.MerchIntf
-	JwtIntf      jwt.ManagerIntf
+	JwtMngIntf   jwt.ManagerIntf
 }
 
 func NewApp(
@@ -27,18 +28,19 @@ func NewApp(
 	transactionStrgIntf := postgres.NewTransactionStrg(dbConn)
 	userStrgIntf := postgres.NewUserStrg(dbConn)
 
-	jwtInntf := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
+	jwtMngIntf := jwt.NewJwtManager(cfg.Jwt.Key, cfg.Jwt.ExpTimeHour)
 
-	authSvcIntf := service.NewAuthSvc(logger, jwtInntf, userStrgIntf)
+	authSvcIntf := service.NewAuthSvc(logger, jwtMngIntf, userStrgIntf)
 	userSvcIntf := service.NewUserSvc(logger, userStrgIntf, boughtMerchStrgIntf, transactionStrgIntf)
 	coinSvcIntf := service.NewCoinSvc(logger, transactionStrgIntf)
 	merchSvcIntf := service.NewMerchSvc(logger, boughtMerchStrgIntf)
 
 	return &App{
+		Logger:       logger,
 		AuthSvcIntf:  authSvcIntf,
 		UserSvcIntf:  userSvcIntf,
 		CoinSvcIntf:  coinSvcIntf,
 		MerchSvcIntf: merchSvcIntf,
-		JwtIntf:      jwtInntf,
+		JwtMngIntf:      jwtMngIntf,
 	}
 }

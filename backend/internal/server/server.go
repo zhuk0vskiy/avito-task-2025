@@ -3,19 +3,15 @@ package server
 import (
 	"avito-task-2025/backend/config"
 	"avito-task-2025/backend/internal/app"
-	coinHandlerv1 "avito-task-2025/backend/internal/controller/http/v1/coin"
-	authHandlerv1 "avito-task-2025/backend/internal/controller/http/v1/auth"
-	userHandlerv1 "avito-task-2025/backend/internal/controller/http/v1/user"
-	merchHandlerv1 "avito-task-2025/backend/internal/controller/http/v1/merch"
+	"avito-task-2025/backend/internal/controller"
 	"fmt"
 
 	"context"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 
 	// "github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
@@ -30,38 +26,25 @@ type Server struct {
 }
 
 func NewServer(cfg config.HTTPConfig, jwtAuth *jwtauth.JWTAuth, a *app.App) *Server {
-	mux := chi.NewMux()
-	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
-		AllowedMethods: []string{"GET", "POST"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders: []string{"Link"},
-	}))
+	handler := gin.New()
+	con := controller.NewRouter(handler)
 
-	mux.Use(middleware.Logger)
+	// Set routes
+	con.SetV1Routes(
+		a.Logger,
+		a.AuthSvcIntf,
+		a.CoinSvcIntf,
+		a.MerchSvcIntf,
+		a.UserSvcIntf,
+		a.JwtMngIntf,
+	)
 
-	mux.Route("/api", func(r chi.Router) {
-
-		r.Group(func(r chi.Router) {
-			r.Post("/auth", authHandlerv1.SignInHandler(a))
-		})
-
-		r.Group(func(r chi.Router) {
-			r.Use(jwtauth.Verifier(jwtAuth))
-
-			r.Get("/info", userHandlerv1.GetUserInfoHandler(a))
-			r.Post("/sendCoin", coinHandlerv1.SendCoinHandler(a))
-			r.Get("/buy/{item}", merchHandlerv1.BuyMerchHandler(a))
-		})
-
-	})
-
-	fmt.Println(cfg.Port)
+	// fmt.Println(cfg.Port)
 	serverPort := fmt.Sprintf(":%s", cfg.Port)
 	return &Server{
 		httpServer: &http.Server{
 			Addr:         serverPort,
-			Handler:      mux,
+			Handler:      handler,
 			ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
 			WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
 		},

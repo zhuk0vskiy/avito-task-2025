@@ -1,18 +1,18 @@
 package user
 
 import (
-	"avito-task-2025/backend/internal/app"
-	"avito-task-2025/backend/internal/controller"
+	"avito-task-2025/backend/internal/service"
 	svcDto "avito-task-2025/backend/internal/service/dto"
+	"avito-task-2025/backend/pkg/jwt"
+	"avito-task-2025/backend/pkg/logger"
 
-	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type GetInfoRequest struct {
-
 }
 
 type GetInfoInventory struct {
@@ -41,78 +41,80 @@ type GetInfoResponse struct {
 	CoinHistory *CoinHistory        `json:"coinHistory"`
 }
 
-func GetUserInfoHandler(a *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//start := time.Now()
+type Controller struct {
+	loggerIntf  logger.Interface
+	userSvcIntf service.UserIntf
+	jwtMngIntf  jwt.ManagerIntf
+}
 
-		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
-
-
-		id, err := a.JwtIntf.GetStringClaimFromJWT(r.Context(), "id")
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-
-		uuID, err := uuid.Parse(id)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-		req := &svcDto.GetUserInfoRequest{
-			UserID: uuID,
-		}
-		svcResponse, err := a.UserSvcIntf.GetInfo(r.Context(), req)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		// response := &GetInfoResponse{
-		// 	Coins:     svcResponse.Coins,
-		// 	Inventory: svcResponse.Inventory,
-		// 	CoinHistory: &struct {
-		// 		Received []*entity.Transaction
-		// 		Sent     []*entity.Transaction
-		// 	}{
-		// 		Received: svcResponse.CoinHistory.Received,
-		// 		Sent:     svcResponse.CoinHistory.Sent,
-		// 	},
-		// }
-
-		inventory := make([]*GetInfoInventory, 0)
-		for i := 0; i < len(svcResponse.Inventory); i++ {
-			inventory = append(inventory, &GetInfoInventory{
-				Type:     svcResponse.Inventory[i].Type,
-				Quantity: svcResponse.Inventory[i].Amount,
-			})
-		}
-
-		receive := make([]*CoinHistoryReceived, 0)
-		for i := 0; i < len(svcResponse.CoinHistory.Received); i++ {
-			receive = append(receive, &CoinHistoryReceived{
-				FromUser: svcResponse.CoinHistory.Received[i].FromUsername,
-				Amount:   svcResponse.CoinHistory.Received[i].CoinsAmount,
-			})
-		}
-
-		sent := make([]*CoinHistorySent, 0)
-		for i := 0; i < len(svcResponse.CoinHistory.Sent); i++ {
-			sent = append(sent, &CoinHistorySent{
-				ToUser: svcResponse.CoinHistory.Sent[i].ToUsername,
-				Amount: svcResponse.CoinHistory.Sent[i].CoinsAmount,
-			})
-		}
-
-		response := &GetInfoResponse{
-			Coins:     svcResponse.Coins,
-			Inventory: inventory,
-			CoinHistory: &CoinHistory{
-				Received: receive,
-				Sent:     sent,
-			},
-		}
-
-		controller.SuccessResponse(wrappedWriter, http.StatusOK, response)
+func NewUserController(loggerIntf logger.Interface, userSvcIntf service.UserIntf, jwtMngIntf jwt.ManagerIntf) *Controller {
+	return &Controller{
+		loggerIntf:  loggerIntf,
+		userSvcIntf: userSvcIntf,
+		jwtMngIntf:  jwtMngIntf,
 	}
+}
+
+func (c *Controller) GetInfoHandler(ctx *gin.Context) {
+
+	var errorStr string
+
+	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx.Request.Context(), "id")
+	if err != nil {
+		errorStr = "cant claim id from token"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+
+	uuID, err := uuid.Parse(id)
+	if err != nil {
+		errorStr = "failed to parse id"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+	req := &svcDto.GetUserInfoRequest{
+		UserID: uuID,
+	}
+
+	svcResponse, err := c.userSvcIntf.GetInfo(ctx.Request.Context(), req)
+	if err != nil {
+		c.loggerIntf.Errorf("failed to get user info: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": err})
+		return
+	}
+
+	inventory := make([]*GetInfoInventory, 0)
+	for i := 0; i < len(svcResponse.Inventory); i++ {
+		inventory = append(inventory, &GetInfoInventory{
+			Type:     svcResponse.Inventory[i].Type,
+			Quantity: svcResponse.Inventory[i].Amount,
+		})
+	}
+
+	receive := make([]*CoinHistoryReceived, 0)
+	for i := 0; i < len(svcResponse.CoinHistory.Received); i++ {
+		receive = append(receive, &CoinHistoryReceived{
+			FromUser: svcResponse.CoinHistory.Received[i].FromUsername,
+			Amount:   svcResponse.CoinHistory.Received[i].CoinsAmount,
+		})
+	}
+
+	sent := make([]*CoinHistorySent, 0)
+	for i := 0; i < len(svcResponse.CoinHistory.Sent); i++ {
+		sent = append(sent, &CoinHistorySent{
+			ToUser: svcResponse.CoinHistory.Sent[i].ToUsername,
+			Amount: svcResponse.CoinHistory.Sent[i].CoinsAmount,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, &GetInfoResponse{
+		Coins:     svcResponse.Coins,
+		Inventory: inventory,
+		CoinHistory: &CoinHistory{
+			Received: receive,
+			Sent:     sent,
+		},
+	})
 }

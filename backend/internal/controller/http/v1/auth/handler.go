@@ -1,14 +1,27 @@
 package auth
 
 import (
-	"avito-task-2025/backend/internal/app"
-	"avito-task-2025/backend/internal/controller"
 	svcDto "avito-task-2025/backend/internal/service/dto"
+	"avito-task-2025/backend/pkg/logger"
 
-	"encoding/json"
-	"fmt"
+	"avito-task-2025/backend/internal/service"
+
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
+
+type Controller struct {
+	loggerIntf  logger.Interface
+	authSvcIntf service.AuthIntf
+}
+
+func NewAuthController(loggerIntf logger.Interface, authSvcIntf service.AuthIntf) *Controller {
+	return &Controller{
+		loggerIntf:  loggerIntf,
+		authSvcIntf: authSvcIntf,
+	}
+}
 
 type SignInRequest struct {
 	Username string `json:"username"`
@@ -19,33 +32,35 @@ type SignInResponse struct {
 	Token string `json:"token"`
 }
 
-func SignInHandler(a *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//start := time.Now()
+func (c *Controller) SignInHandler(ctx *gin.Context) {
 
-		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
+	//start := time.Now()
 
-		var httpReq SignInRequest
+	// wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
 
-		err := json.NewDecoder(r.Body).Decode(&httpReq)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
+	var httpReq SignInRequest
+	var errorStr string
 
-		req := &svcDto.SignInRequest{
-			Username: httpReq.Username,
-			Password: httpReq.Password,
-		}
-		svcResponse, err := a.AuthSvcIntf.SignIn(r.Context(), req)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		response := &SignInResponse{
-			Token: svcResponse.JwtToken,
-		}
-		controller.SuccessResponse(wrappedWriter, http.StatusOK, map[string]string{"token": response.Token})
+	if err := ctx.ShouldBindJSON(&httpReq); err != nil {
+		errorStr = "incorrect request body"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
 	}
+
+	req := &svcDto.SignInRequest{
+		Username: httpReq.Username,
+		Password: httpReq.Password,
+	}
+	svcResponse, err := c.authSvcIntf.SignIn(ctx.Request.Context(), req)
+	if err != nil {
+		c.loggerIntf.Errorf("cant auth: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": err})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &SignInResponse{
+		Token: svcResponse.JwtToken,
+	})
+
 }

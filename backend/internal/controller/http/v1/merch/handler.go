@@ -1,56 +1,69 @@
 package merch
 
 import (
-	"avito-task-2025/backend/internal/app"
-	"avito-task-2025/backend/internal/controller"
+	"avito-task-2025/backend/internal/service"
 	svcDto "avito-task-2025/backend/internal/service/dto"
+	"avito-task-2025/backend/pkg/jwt"
+	"avito-task-2025/backend/pkg/logger"
 
-	"fmt"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type BuyMerchResponse struct {
 }
 
-
 type BuyMerchRequest struct {
 	Item string `json:"item"`
 }
 
+type Controller struct {
+	loggerIntf   logger.Interface
+	merchSvcIntf service.MerchIntf
+	jwtMngIntf   jwt.ManagerIntf
+}
 
-func BuyMerchHandler(a *app.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//start := time.Now()
-
-		wrappedWriter := &controller.StatusResponseWriter{ResponseWriter: w, StatusCodeOuter: http.StatusOK}
-
-		id, err := a.JwtIntf.GetStringClaimFromJWT(r.Context(), "id")
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-
-		uuID, err := uuid.Parse(id)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusInternalServerError)
-			return
-		}
-
-		item := chi.URLParam(r, "item")
-
-		req := &svcDto.BuyMerchRequest{
-			UserID:    uuID,
-			MerchName: item,
-		}
-		err = a.MerchSvcIntf.Buy(r.Context(), req)
-		if err != nil {
-			controller.ErrorResponse(w, fmt.Errorf("%s", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		controller.SuccessResponse(wrappedWriter, http.StatusOK, nil)
+func NewMerchController(loggerIntf logger.Interface, merchSvcIntf service.MerchIntf, jwtMngIntf jwt.ManagerIntf) *Controller {
+	return &Controller{
+		loggerIntf:   loggerIntf,
+		merchSvcIntf: merchSvcIntf,
+		jwtMngIntf:   jwtMngIntf,
 	}
+}
+
+func (c *Controller) BuyMerchHandler(ctx *gin.Context) {
+	var errorStr string
+
+	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx.Request.Context(), "id")
+	if err != nil {
+		errorStr = "cant claim id from token"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+
+	uuID, err := uuid.Parse(id)
+	if err != nil {
+		errorStr = "failed to parse id"
+		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": errorStr})
+		return
+	}
+
+	item := ctx.Param("item")
+
+	req := &svcDto.BuyMerchRequest{
+		UserID:    uuID,
+		MerchName: item,
+	}
+	err = c.merchSvcIntf.Buy(ctx.Request.Context(), req)
+	if err != nil {
+		c.loggerIntf.Errorf("failed to buy merch: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": err})
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
