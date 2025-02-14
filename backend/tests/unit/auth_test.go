@@ -13,18 +13,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"avito-task-2025/backend/pkg/jwt"
 	loggerMock "avito-task-2025/backend/pkg/logger/mocks"
 
 	"testing"
 )
 
-// create new user
-func TestSignInSuccess_01(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 
 	mockUserStrgIntf := new(mocks.UserIntf)
 	mockLogger := new(loggerMock.Interface)
+	jwtMngIntf := jwt.NewJwtManager("avito", 1)
 
-	authService := service.NewAuthSvc(mockLogger, mockUserStrgIntf, "loveavito")
+	authService := service.NewAuthSvc(mockLogger, jwtMngIntf, mockUserStrgIntf)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -36,6 +37,7 @@ func TestSignInSuccess_01(t *testing.T) {
 	mockLogger.On("Errorf", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
+	mockLogger.On("Debugf", mock.Anything, mock.Anything).Times(0)
 
 	id, _ := uuid.NewRandom()
 	mockUserStrgIntf.On("GetByUsername", ctx, mock.Anything).Return(&strgDto.GetUserByUsernameResponse{
@@ -52,7 +54,6 @@ func TestSignInSuccess_01(t *testing.T) {
 			r := args.Get(1).(*strgDto.InsertUserRequest)
 			assert.Equal(t, req.Username, r.Username)
 			assert.NotEmpty(t, r.HashPassword)
-			assert.NotEmpty(t, r.CoinsAmount)
 		})
 
 	response, err := authService.SignIn(ctx, req)
@@ -66,8 +67,9 @@ func TestSignInFailed_01(t *testing.T) {
 
 	mockUserStrgIntf := new(mocks.UserIntf)
 	mockLogger := new(loggerMock.Interface)
+	jwtMngIntf := jwt.NewJwtManager("avito", 1)
 
-	authService := service.NewAuthSvc(mockLogger, mockUserStrgIntf, "loveavito")
+	authService := service.NewAuthSvc(mockLogger, jwtMngIntf, mockUserStrgIntf)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -79,6 +81,7 @@ func TestSignInFailed_01(t *testing.T) {
 	mockLogger.On("Errorf", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
+	mockLogger.On("Debugf", mock.Anything, mock.Anything).Times(0)
 
 	id, _ := uuid.NewRandom()
 	mockUserStrgIntf.On("GetByUsername", ctx, mock.Anything).Return(&strgDto.GetUserByUsernameResponse{
@@ -95,12 +98,11 @@ func TestSignInFailed_01(t *testing.T) {
 			r := args.Get(1).(*strgDto.InsertUserRequest)
 			assert.Equal(t, req.Username, r.Username)
 			assert.NotEmpty(t, r.HashPassword)
-			assert.NotEmpty(t, r.CoinsAmount)
 		})
 
 	response, err := authService.SignIn(ctx, req)
 
-	assert.Error(t, err)
+	assert.Equal(t, service.ErrIncorrectPassword, err)
 	assert.Empty(t, response)
 }
 
@@ -110,7 +112,9 @@ func TestSignInFailed_02(t *testing.T) {
 	mockUserStrgIntf := new(mocks.UserIntf)
 	mockLogger := new(loggerMock.Interface)
 
-	authService := service.NewAuthSvc(mockLogger, mockUserStrgIntf, "lovaavito")
+	jwtMngIntf := jwt.NewJwtManager("avito", 1)
+
+	authService := service.NewAuthSvc(mockLogger, jwtMngIntf, mockUserStrgIntf)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -122,10 +126,11 @@ func TestSignInFailed_02(t *testing.T) {
 	mockLogger.On("Errorf", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
+	mockLogger.On("Debugf", mock.Anything, mock.Anything).Times(0)
 
 	response, err := authService.SignIn(ctx, req)
 
-	assert.Error(t, err)
+	assert.Equal(t, service.ErrEmptyUsername, err)
 	assert.Empty(t, response)
 }
 
@@ -134,8 +139,9 @@ func TestSignInFailed_03(t *testing.T) {
 
 	mockUserStrgIntf := new(mocks.UserIntf)
 	mockLogger := new(loggerMock.Interface)
+	jwtMngIntf := jwt.NewJwtManager("avito", 1)
 
-	authService := service.NewAuthSvc(mockLogger, mockUserStrgIntf, "loveavito")
+	authService := service.NewAuthSvc(mockLogger, jwtMngIntf, mockUserStrgIntf)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -147,9 +153,10 @@ func TestSignInFailed_03(t *testing.T) {
 	mockLogger.On("Errorf", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
 	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
+	mockLogger.On("Debugf", mock.Anything, mock.Anything).Times(0)
 
 	response, err := authService.SignIn(ctx, req)
 
-	assert.Error(t, err)
+	assert.Equal(t, service.ErrEmptyPassword, err)
 	assert.Empty(t, response)
 }

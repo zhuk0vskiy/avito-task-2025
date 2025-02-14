@@ -1,29 +1,28 @@
 package intgr
 
 import (
-	"avito-task-2025/backend/internal/service"
-	svcDto "avito-task-2025/backend/internal/service/dto"
-	"avito-task-2025/backend/internal/storage/postgres"
-	"avito-task-2025/backend/pkg/jwt"
-	loggerMock "avito-task-2025/backend/pkg/logger/mocks"
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
+	"avito-task-2025/backend/tests/helper"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+
+	strgDto "avito-task-2025/backend/internal/storage/dto"
+	"avito-task-2025/backend/internal/storage/postgres"
+	// "avito-task-2025/backend/internal/storage/"
 )
 
-// success get user
-func TestGetUserSuccess_01(t *testing.T) {
+// success sign up
+func TestInsertUserSuccess(t *testing.T) {
 
-	mockLogger := new(loggerMock.Interface)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cfg := NewTestConfig()
+	migrator, cfg := helper.NewTestConfig("file://../../../db/postgres/test_migrations/user")
+	migrator.Force(00)
 
 	dbConnector, err := postgres.NewDbConn(ctx, &cfg.Database.Postgres)
 	if err != nil {
@@ -32,57 +31,128 @@ func TestGetUserSuccess_01(t *testing.T) {
 
 	userStrgIntf := postgres.NewUserStrg(dbConnector)
 
-	transactionStrgIntf := postgres.NewTransactionStrg(dbConnector)
-	boughtMerchStrgIntf := postgres.NewBoughtMerchStrg(dbConnector)
-
-
-
-	authSvcIntf := service.NewAuthSvc(mockLogger, userStrgIntf, cfg.JwtKey)
-	userSvcIntf := service.NewUserSvc(mockLogger, userStrgIntf, boughtMerchStrgIntf, transactionStrgIntf)
-
-	req := &svcDto.SignInRequest{
-		Username: "test6",
-		Password: "test6",
+	req := &strgDto.InsertUserRequest{
+		Username:     "test1",
+		HashPassword: []byte{'0'},
 	}
 
-	mockLogger.On("Errorf", mock.Anything, mock.Anything).Times(0)
-	mockLogger.On("Infof", mock.Anything, mock.Anything).Times(0)
-	mockLogger.On("Warnf", mock.Anything, mock.Anything).Times(0)
+	err = userStrgIntf.Insert(ctx, req)
 
-	response, err := authSvcIntf.SignIn(ctx, req)
-	if err != nil {
-		t.Error(err)
-	}
-	token := response.JwtToken
+	migrator.Down()
+	assert.NoError(t, err)
+}
 
-	payload, err := jwt.VerifyAuthToken(token, cfg.JwtKey)
-	if err != nil {
-		t.Error(err)
-	}
-	id, err := uuid.Parse(payload.Id)
-	if err != nil {
-		t.Error(err)
-	}
-	
-	getResponse, err := userSvcIntf.GetInfo(ctx, &svcDto.GetUserInfoRequest{
-		UserID: id,
-	})
+func TestGetUserByUsernameSuccess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	migrator, cfg := helper.NewTestConfig("file://../../../db/postgres/test_migrations/user")
+	migrator.Force(001)
+	migrator.Down()
+	migrator.Up()
+
+	dbConnector, err := postgres.NewDbConn(ctx, &cfg.Database.Postgres)
 	if err != nil {
 		t.Error(err)
 	}
 
-	fmt.Println(getResponse.UserInfo.Coins)
-	for _, i := range getResponse.UserInfo.Inventory {
-		fmt.Println(i)
+	userStrgIntf := postgres.NewUserStrg(dbConnector)
+
+	req := &strgDto.GetUserByUsernameRequest{
+		Username: "test",
 	}
-	for _, i := range getResponse.UserInfo.CoinHistory.Received {
-		fmt.Println(i.FromUsername)
-	}
-	for _, i := range getResponse.UserInfo.CoinHistory.Sent {
-		fmt.Println(i.ToUsername)
-	}
-	
+
+	res, err := userStrgIntf.GetByUsername(ctx, req)
+
+	migrator.Down()
 
 	assert.NoError(t, err)
-	assert.NotEmpty(t, getResponse)
+	assert.Equal(t, []byte{'9'}, res.HashPassword)
+}
+
+func TestGetUserByUsernameEmptyPassword(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	migrator, cfg := helper.NewTestConfig("file://../../../db/postgres/test_migrations/user")
+	migrator.Force(002)
+	migrator.Down()
+	migrator.Up()
+
+	dbConnector, err := postgres.NewDbConn(ctx, &cfg.Database.Postgres)
+	if err != nil {
+		t.Error(err)
+	}
+
+	userStrgIntf := postgres.NewUserStrg(dbConnector)
+
+	req := &strgDto.GetUserByUsernameRequest{
+		Username: "testest",
+	}
+
+	res, err := userStrgIntf.GetByUsername(ctx, req)
+
+	migrator.Down()
+
+	assert.NoError(t, err)
+	assert.Equal(t, []byte(nil), res.HashPassword)
+}
+
+func TestGetCoinsByUserID(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	migrator, cfg := helper.NewTestConfig("file://../../../db/postgres/test_migrations/user")
+	migrator.Down()
+	migrator.Force(003)
+	migrator.Up()
+
+	dbConnector, err := postgres.NewDbConn(ctx, &cfg.Database.Postgres)
+	if err != nil {
+		t.Error(err)
+	}
+
+	userStrgIntf := postgres.NewUserStrg(dbConnector)
+
+	id, _ := uuid.Parse("068d0e53-9826-4fe0-8d86-b925c52ae25c")
+
+	req := &strgDto.GetCoinsByUserIDRequest{
+		UserID: id,
+	}
+
+	res, err := userStrgIntf.GetCoinsByUserID(ctx, req)
+
+	migrator.Down()
+
+	assert.NoError(t, err)
+	assert.Equal(t, int32(1000), res.Amount)
+}
+
+func TestGetCoinsByUserIDInvalidID(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	migrator, cfg := helper.NewTestConfig("file://../../../db/postgres/test_migrations/user")
+	migrator.Force(004)
+	migrator.Down()
+	migrator.Up()
+
+	dbConnector, err := postgres.NewDbConn(ctx, &cfg.Database.Postgres)
+	if err != nil {
+		t.Error(err)
+	}
+
+	userStrgIntf := postgres.NewUserStrg(dbConnector)
+
+	id, _ := uuid.Parse("068d0e53-9826-4fe0-8d86-b925c52ae25a")
+
+	req := &strgDto.GetCoinsByUserIDRequest{
+		UserID: id,
+	}
+
+	_, err = userStrgIntf.GetCoinsByUserID(ctx, req)
+
+	migrator.Down()
+
+	assert.Equal(t, postgres.ErrInvalidUserID, err)
 }

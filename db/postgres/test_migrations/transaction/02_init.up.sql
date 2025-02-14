@@ -1,0 +1,2 @@
+insert into transactions(from_user_id, to_user_id, coins_amount) values ('068d0e53-9826-4fe0-8d86-b925c52ae25c', '068d0e53-9826-4fe0-8d86-b925c52ae25a', 100);
+insert into transactions(from_user_id, to_user_id, coins_amount) values ('068d0e53-9826-4fe0-8d86-b925c52ae25a', '068d0e53-9826-4fe0-8d86-b925c52ae25c', 100);

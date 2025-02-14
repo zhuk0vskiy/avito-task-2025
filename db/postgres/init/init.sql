@@ -8,12 +8,12 @@ alter default privileges in schema public grant all privileges on tables to admi
 -- create database test_shop;
 -- grant all privileges on database test_shop to test_admin;
 
-create role readaccess;
-grant connect on database shop to readaccess;
-grant select on all tables in schema public to readaccess;
-create user admin_ro with password 'avito_ro';
-grant readaccess to avito_ro;
-alter default privileges in schema public grant select on tables to readaccess;
+-- create role readaccess;
+-- grant connect on database shop to readaccess;
+-- grant select on all tables in schema public to readaccess;
+-- create user admin_ro with password 'avito_ro';
+-- grant readaccess to admin_ro;
+-- alter default privileges in schema public grant select on tables to readaccess;
 
 create table if not exists merchs
 (
