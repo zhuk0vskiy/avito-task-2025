@@ -11,7 +11,6 @@ up-local-backend:
 build-backend-image:
 	cd backend && docker build -t avito-shop-backend . --no-cache --progress=plain
 
-
 .PHONY: up-backend
 up-backend:
 	docker compose up -d backend-1 postgres-master
@@ -43,6 +42,7 @@ generate-mocks:
 	cd backend/internal/storage && go run github.com/vektra/mockery/v2@v2.42.1 --name=UserIntf
 	cd backend/internal/storage && go run github.com/vektra/mockery/v2@v2.42.1 --name=BoughtMerchIntf
 	cd backend/internal/storage && go run github.com/vektra/mockery/v2@v2.42.1 --name=TransactionIntf
+	cd backend/pkg/logger && go run github.com/vektra/mockery/v2@v2.42.1 --name=Interface
 
 .PHONY: unit-tests
 unit-tests:
