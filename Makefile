@@ -47,6 +47,7 @@ generate-mocks:
 .PHONY: unit-tests
 unit-tests:
 	@make generate-mocks
+	cd backend && go mod tidy
 	cd backend && go test -v -count=1 -coverprofile=coverage.out -cover \
 	 -coverpkg "./internal/service" "./tests/unit"
 	cd backend && go tool cover -func=coverage.out
