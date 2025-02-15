@@ -7,6 +7,7 @@ import (
 	"avito-task-2025/backend/internal/storage/postgres"
 	"avito-task-2025/backend/pkg/logger"
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -24,7 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Println(c.Jwt.Key)
 	loggerFile, err := os.OpenFile(
 		c.Logger.File,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
@@ -47,10 +48,11 @@ func main() {
 
 	a := app.NewApp(c, l, dbConn)
 
-	s := server.NewServer(c.Http, tokenAuth, a)
+
+	s := server.NewChiServer(c.Http, tokenAuth, a)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	s.Start()
+	go s.Start()
 
 	quit := make(chan os.Signal, 1)
 
@@ -65,9 +67,7 @@ func main() {
 		log.Fatal("server shutdown:", err)
 	}
 
-	select {
-	case <-ctx.Done():
-		log.Println("timeout of 5 seconds.")
-	}
+	<-ctx.Done()
+
 	log.Println("server exiting")
 }

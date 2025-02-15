@@ -1,1 +1,0 @@
-insert into users(username, password, coins_amount) values ('test', '\x39', 1000);

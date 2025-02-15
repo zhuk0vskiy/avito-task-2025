@@ -25,7 +25,7 @@ type JwtConfig struct {
 }
 
 type LoggerConfig struct {
-	Level string `yaml:"level"`
+	Level string `yaml:"level" env:"LOGS_LEVEL" env-default:"warn"`
 	File  string `yaml:"file" env:"LOGS_FILE"`
 }
 

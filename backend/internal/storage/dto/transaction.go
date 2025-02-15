@@ -15,18 +15,18 @@ type InsertTransactionRequest struct {
 type InsertTransactionResponse struct {
 }
 
-type GetTransactionByFromUserIDRequest struct {
+type GetTransactionToUserIDRequest struct {
 	UserID uuid.UUID
 }
 
-type GetTransactionByFromUserIDResponse struct {
+type GetTransactionToUserIDResponse struct {
 	Transactions []*entity.Transaction
 }
 
-type GetTransactionByToUserIDRequest struct {
+type GetTransactionFromUserIDRequest struct {
 	UserID uuid.UUID
 }
 
-type GetTransactionByToUserIDResponse struct {
+type GetTransactionFromUserIDResponse struct {
 	Transactions []*entity.Transaction
 }

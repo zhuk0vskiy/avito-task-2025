@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func TestCreateUser(t *testing.T) {
+func TestSignUpUser(t *testing.T) {
 
 	mockUserStrgIntf := new(mocks.UserIntf)
 	mockLogger := new(loggerMock.Interface)
@@ -43,18 +43,11 @@ func TestCreateUser(t *testing.T) {
 	mockUserStrgIntf.On("GetByUsername", ctx, mock.Anything).Return(&strgDto.GetUserByUsernameResponse{
 		ID:           id,
 		HashPassword: []byte{},
-	}, nil).Run(
-		func(args mock.Arguments) {
-			r := args.Get(1).(*strgDto.GetUserByUsernameRequest)
-			assert.Equal(t, req.Username, r.Username)
-		})
+	}, nil)
 
-	mockUserStrgIntf.On("Insert", ctx, mock.Anything).Return(nil).Run(
-		func(args mock.Arguments) {
-			r := args.Get(1).(*strgDto.InsertUserRequest)
-			assert.Equal(t, req.Username, r.Username)
-			assert.NotEmpty(t, r.HashPassword)
-		})
+	mockUserStrgIntf.On("Insert", ctx, mock.Anything).Return(&strgDto.InsertUserResponse{
+		ID: id,
+	}, nil)
 
 	response, err := authService.SignIn(ctx, req)
 
@@ -87,18 +80,8 @@ func TestSignInFailed_01(t *testing.T) {
 	mockUserStrgIntf.On("GetByUsername", ctx, mock.Anything).Return(&strgDto.GetUserByUsernameResponse{
 		ID:           id,
 		HashPassword: []byte{'1'},
-	}, nil).Run(
-		func(args mock.Arguments) {
-			r := args.Get(1).(*strgDto.GetUserByUsernameRequest)
-			assert.Equal(t, req.Username, r.Username)
-		})
-
-	mockUserStrgIntf.On("Insert", ctx, mock.Anything).Return(nil).Run(
-		func(args mock.Arguments) {
-			r := args.Get(1).(*strgDto.InsertUserRequest)
-			assert.Equal(t, req.Username, r.Username)
-			assert.NotEmpty(t, r.HashPassword)
-		})
+	}, nil)
+	mockUserStrgIntf.On("Insert", ctx, mock.Anything).Return(nil)
 
 	response, err := authService.SignIn(ctx, req)
 

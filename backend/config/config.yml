@@ -8,7 +8,6 @@ http:
 
 jwt:
   expTimeHour: 12
-  hashCost: 
 
 database:
   postgres:

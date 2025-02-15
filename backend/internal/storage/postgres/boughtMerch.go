@@ -6,7 +6,6 @@ import (
 	strgDto "avito-task-2025/backend/internal/storage/dto"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -14,16 +13,16 @@ import (
 )
 
 var (
-	errBuyTransStart           = errors.New("failed to start buy merch trans")
-	errBuyTransRollback        = errors.New("failed to rollback buy merch trans")
-	errBuyDecreaseCoinsAmount  = errors.New("user dont have enough coins")
-	errBuyNotEnoughMoney       = errors.New("user dont have enough money to by merch")
-	errBuyTransRecord          = errors.New("failed to insert bought merch record")
-	errBuyCommitTrans          = errors.New("failed to commit buy merch trans")
-	errGetAllBoughtMerchByUser = errors.New("falied to get user bought merchs")
-	errScanMerchRow            = errors.New("failed to scan bought merch row")
-	errInvalidMerchName        = errors.New("this merch doesnt exist")
-	errIncreaseBoughtMerchAmount     = errors.New("failed to increase bought merch amount")
+	errBuyTransStart             = errors.New("failed to start buy merch trans")
+	errBuyTransRollback          = errors.New("failed to rollback buy merch trans")
+	errBuyDecreaseCoinsAmount    = errors.New("failed to decrease coins")
+	ErrBuyNotEnoughCoins         = errors.New("not enough coins to buy merch")
+	errBuyTransRecord            = errors.New("failed to insert bought merch record")
+	errBuyCommitTrans            = errors.New("failed to commit buy merch trans")
+	errGetAllBoughtMerchByUser   = errors.New("falied to get user bought merchs")
+	errScanMerchRow              = errors.New("failed to scan bought merch row")
+	ErrInvalidMerchName          = errors.New("this merch doesnt exist")
+	errIncreaseBoughtMerchAmount = errors.New("failed to increase bought merch amount")
 )
 
 var (
@@ -41,8 +40,7 @@ func NewBoughtMerchStrg(dbConnector *pgxpool.Pool) storage.BoughtMerchIntf {
 	}
 }
 
-func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBoughtMerchRequest) (err error) {
-
+func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.InsertBoughtMerchRequest) (err error) {
 
 	var cost int
 	var merchID uuid.UUID
@@ -51,13 +49,13 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 	err = s.dbConnector.QueryRow(
 		ctx,
 		query,
-		request.MerchName,
+		request.Type,
 	).Scan(
 		&merchID,
 		&cost,
 	)
 	if err != nil {
-		return errInvalidMerchName
+		return ErrInvalidMerchName
 	}
 
 	tx, err := s.dbConnector.BeginTx(ctx, pgx.TxOptions{})
@@ -79,6 +77,7 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 			set coins_amount = coins_amount - $1
 			where id = $2
 			returning coins_amount`
+
 	err = tx.QueryRow(
 		ctx,
 		query,
@@ -88,16 +87,17 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 		&coinsAmount,
 	)
 	if err != nil {
+
 		return errBuyDecreaseCoinsAmount
+
 	}
 	if coinsAmount < 0 {
-		return errBuyNotEnoughMoney
+		return ErrBuyNotEnoughCoins
 	}
-
 
 	var tmp *int
 	var merchsAmount int
-	fmt.Println(request.UserID, merchID)
+	// fmt.Println(request.UserID, merchID)
 	query = `insert into bought_merchs(user_id, merch_id) 
 			values ($1, $2)
 			returning amount`
@@ -111,7 +111,9 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.AddBought
 	)
 
 	if err != nil {
+
 		return errBuyTransRecord
+
 	}
 
 	if tmp != nil {
@@ -161,6 +163,7 @@ func (s *BoughtMerchStrg) GetByUserID(ctx context.Context, request *strgDto.GetB
 			&merch.Type,
 		)
 		if err != nil {
+			// fmt.Println(err)
 			return nil, errScanMerchRow
 		}
 

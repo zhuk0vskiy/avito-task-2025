@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	errInfoInvalidUserID = errors.New("trying to get user info with invalid UserID")
+	ErrInfoInvalidUserID = errors.New("trying to get user info with invalid UserID")
 )
 
 type UserIntf interface {
@@ -38,16 +38,16 @@ func NewUserSvc(logger logger.Interface, userIntf storage.UserIntf, boughtMerchI
 
 func (s *UserSvc) GetInfo(ctx context.Context, request *svcDto.GetUserInfoRequest) (response *svcDto.GetUserInfoResponse, err error) {
 	_, err = uuid.Parse(request.UserID.String())
-	if err != nil {
-		s.logger.Errorf(errInfoInvalidUserID.Error())
-		return nil, errInfoInvalidUserID
+	if err != nil || request.UserID == uuid.Nil {
+		s.logger.Errorf(ErrInfoInvalidUserID.Error())
+		return nil, ErrInfoInvalidUserID
 	}
 
 	coins, err := s.userIntf.GetCoinsByUserID(ctx, &strgDto.GetCoinsByUserIDRequest{
 		UserID: request.UserID,
 	})
 	if err != nil {
-		s.logger.Infof(err.Error())
+		s.logger.Warnf(err.Error())
 		return nil, err
 	}
 
@@ -55,43 +55,39 @@ func (s *UserSvc) GetInfo(ctx context.Context, request *svcDto.GetUserInfoReques
 		UserID: request.UserID,
 	})
 	if err != nil {
-		s.logger.Infof(err.Error())
+		s.logger.Warnf(err.Error())
 		return nil, err
 	}
 
-	receivedCoins, err := s.transactionIntf.GetByFromUserID(ctx, &strgDto.GetTransactionByFromUserIDRequest{
+	receivedCoins, err := s.transactionIntf.GetToUserID(ctx, &strgDto.GetTransactionToUserIDRequest{
 		UserID: request.UserID,
 	})
 	if err != nil {
-		s.logger.Infof(err.Error())
+		s.logger.Warnf(err.Error())
 		return nil, err
 	}
 
-	sentCoins, err := s.transactionIntf.GetByToUserID(ctx, &strgDto.GetTransactionByToUserIDRequest{
+	sentCoins, err := s.transactionIntf.GetFromUserID(ctx, &strgDto.GetTransactionFromUserIDRequest{
 		UserID: request.UserID,
 	})
 	if err != nil {
-		s.logger.Infof(err.Error())
+		s.logger.Warnf(err.Error())
 		return nil, err
 	}
-
 
 	coinHistory := struct {
 		Received []*entity.Transaction
 		Sent     []*entity.Transaction
 	}{
 		Received: receivedCoins.Transactions,
-		Sent: sentCoins.Transactions,
+		Sent:     sentCoins.Transactions,
 	}
 
 	response = &svcDto.GetUserInfoResponse{
-		Coins: coins.Amount,
-		Inventory: inventory.Merchs,
+		Coins:       coins.Amount,
+		Inventory:   inventory.Merchs,
 		CoinHistory: &coinHistory,
 	}
-
-	
-
 
 	return response, nil
 

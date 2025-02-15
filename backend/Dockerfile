@@ -13,6 +13,6 @@ RUN go build -o /build ./cmd \
 RUN 
 
 ENV CONFIG_PATH=/app/config/config.yml
-ENV JWT_KEY=OhGodILoveAvito
+ENV JWT_KEY=Avitoooo
 
 CMD ["/build"]

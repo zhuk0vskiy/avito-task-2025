@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	errEmptyMerchName     = errors.New("merch name is emtpy")
-	errMerchInvalidUserID = errors.New("trying to buy merch with invalid UserID")
+	ErrEmptyMerchName     = errors.New("merch name is empty")
+	ErrMerchInvalidUserID = errors.New("trying to buy merch with invalid user id")
 )
 
 type MerchIntf interface {
@@ -35,20 +35,20 @@ func NewMerchSvc(logger logger.Interface, boughtMerchIntf storage.BoughtMerchInt
 
 func (s *MerchSvc) Buy(ctx context.Context, request *svcDto.BuyMerchRequest) (err error) {
 	_, err = uuid.Parse(request.UserID.String())
-	if err != nil {
-		s.logger.Errorf(errMerchInvalidUserID.Error())
-		return errMerchInvalidUserID
+	if err != nil || request.UserID == uuid.Nil {
+		s.logger.Warnf(ErrMerchInvalidUserID.Error())
+		return ErrMerchInvalidUserID
 	}
 
 	if request.MerchName == "" {
-		s.logger.Warnf(errEmptyMerchName.Error())
-		return errEmptyMerchName
+		s.logger.Warnf(ErrEmptyMerchName.Error())
+		return ErrEmptyMerchName
 	}
 
 	s.logger.Debugf("before buy insert %s", time.Now().UnixMilli())
-	err = s.boughtMerchIntf.Insert(ctx, &strgDto.AddBoughtMerchRequest{
-		UserID:    request.UserID,
-		MerchName: request.MerchName,
+	err = s.boughtMerchIntf.Insert(ctx, &strgDto.InsertBoughtMerchRequest{
+		UserID: request.UserID,
+		Type:   request.MerchName,
 	})
 	s.logger.Debugf("after buy insert %s", time.Now().UnixMilli())
 	if err != nil {

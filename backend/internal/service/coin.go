@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	errCoinsInvalidUserID  = errors.New("trying to send coins with invalid UserID")
-	errToUsername          = errors.New("username, which should recieve coins, is invalid")
-	errNegativeCoinsAmount = errors.New("coins amount less then 0")
+	ErrCoinsInvalidUserID  = errors.New("trying to send coins with invalid UserID")
+	ErrInvalidToUsername   = errors.New("username, which should recieve coins, is invalid")
+	ErrNegativeCoinsAmount = errors.New("coins amount less then 1")
 )
 
 type CoinIntf interface {
@@ -36,28 +36,28 @@ func NewCoinSvc(logger logger.Interface, transactionIntf storage.TransactionIntf
 func (s *CoinSvc) Send(ctx context.Context, request *svcDto.SendCoinsRequest) (err error) {
 
 	_, err = uuid.Parse(request.UserID.String())
-	if err != nil {
-		s.logger.Errorf(errCoinsInvalidUserID.Error())
-		return errCoinsInvalidUserID
+	if err != nil || request.UserID == uuid.Nil{
+		s.logger.Warnf(ErrCoinsInvalidUserID.Error())
+		return ErrCoinsInvalidUserID
 	}
 
-	if request.ToUserUsername == "" {
-		s.logger.Warnf(errNegativeCoinsAmount.Error())
-		return errNegativeCoinsAmount
+	if request.ToUsername == "" {
+		s.logger.Warnf(ErrNegativeCoinsAmount.Error())
+		return ErrNegativeCoinsAmount
 	}
 
-	if request.CoinsAmount < 0 {
-		s.logger.Warnf(errToUsername.Error())
-		return errToUsername
+	if request.CoinsAmount <= 0 {
+		s.logger.Warnf(ErrInvalidToUsername.Error())
+		return ErrInvalidToUsername
 	}
 
 	err = s.transactionIntf.Insert(ctx, &strgDto.InsertTransactionRequest{
 		FromUserID:  request.UserID,
-		ToUsername:  request.ToUserUsername,
+		ToUsername:  request.ToUsername,
 		CoinsAmount: request.CoinsAmount,
 	})
 	if err != nil {
-		s.logger.Infof(err.Error())
+		s.logger.Warnf(err.Error())
 		return err
 	}
 

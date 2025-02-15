@@ -4,7 +4,7 @@ import "github.com/google/uuid"
 
 type SendCoinsRequest struct {
 	UserID         uuid.UUID
-	ToUserUsername string
+	ToUsername string
 	CoinsAmount    int32
 }
 

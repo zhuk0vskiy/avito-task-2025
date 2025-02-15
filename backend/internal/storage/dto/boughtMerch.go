@@ -6,9 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type AddBoughtMerchRequest struct {
-	UserID    uuid.UUID
-	MerchName string
+type InsertBoughtMerchRequest struct {
+	UserID uuid.UUID
+	Type   string
 }
 
 // type AddBoughtMerchResponse struct {

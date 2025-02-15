@@ -39,8 +39,8 @@ func New(level string, w io.Writer) *Logger {
 
 	zerolog.SetGlobalLevel(l)
 
-	skipFrameCount := 3
-	logger := zerolog.New(w).With().Timestamp().CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + skipFrameCount).Logger()
+	// skipFrameCount := 3
+	logger := zerolog.New(w).With().Timestamp().Logger()
 
 	return &Logger{
 		logger: &logger,

@@ -7,9 +7,9 @@ type InsertUserRequest struct {
 	HashPassword []byte
 }
 
-// type InsertUserResponse struct {
-
-// }
+type InsertUserResponse struct {
+	ID uuid.UUID
+}
 
 type GetUserByUsernameRequest struct {
 	Username string

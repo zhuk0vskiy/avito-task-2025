@@ -13,18 +13,20 @@ import (
 )
 
 var (
-	ErrInsertTransStart    = errors.New("failed to start send coins trans")
-	ErrInsertTransRollback = errors.New("failed to rollback send coins trans")
-	ErrDecreaseCoinsAmount = errors.New("failed to decrease user coins amount to send")
-	ErrNotEnoughMoney      = errors.New("user dont have enough money to send")
-	ErrIncreaseCoinsAmount = errors.New("failed to increase user coins amount")
-	ErrNoReceiveUser       = errors.New("receive user doesnt exist")
-	ErrInsertTransRecord   = errors.New("failed to insert send coins trans record")
-	ErrInsertCommitTrans   = errors.New("failed to commit send coins trans")
-	ErrGetTransFromUser    = errors.New("failed to get trans from user")
-	ErrSelectQueryRow      = errors.New("error while quering select row")
-	ErrGetTransToUser      = errors.New("failed to get trans to user")
-	errGetUserIDbyUsername = errors.New("user with this username doesnt exists")
+	ErrInsertTransStart     = errors.New("failed to start send coins trans")
+	ErrInsertTransRollback  = errors.New("failed to rollback send coins trans")
+	ErrDecreaseCoinsAmount  = errors.New("failed to decrease user coins amount to send")
+	ErrNotEnoughCoins       = errors.New("not enough coins to send")
+	ErrIncreaseCoinsAmount  = errors.New("failed to increase user coins amount")
+	ErrNoReceiveUser        = errors.New("receive user doesnt exist")
+	ErrSenderDoesntExist    = errors.New("failed to insert send coins trans record")
+	ErrInsertCommitTrans    = errors.New("failed to commit send coins trans")
+	ErrGetTransNoSuchUserID = errors.New("no such user id")
+	ErrSelectQueryRow       = errors.New("error while quering select row")
+	ErrGetTransToUser       = errors.New("failed to get trans to user")
+
+	ErrReceiverDoesntExist = errors.New("receiver with this username doesnt exist")
+	ErrSameUser            = errors.New("cant send coins to yourself")
 )
 
 type TransactionStrg struct {
@@ -38,7 +40,6 @@ func NewTransactionStrg(dbConnector *pgxpool.Pool) storage.TransactionIntf {
 }
 
 func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTransactionRequest) (err error) {
-	
 
 	var receiverID uuid.UUID
 	query := `select id from users where username = $1`
@@ -50,9 +51,12 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 		&receiverID,
 	)
 	if err != nil {
-		return errGetUserIDbyUsername
+		return ErrReceiverDoesntExist
 	}
-	
+	if receiverID == request.FromUserID {
+		return ErrSameUser
+	}
+
 	tx, err := s.dbConnector.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return ErrInsertTransStart
@@ -78,10 +82,10 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 	)
 
 	if err != nil {
-		return ErrDecreaseCoinsAmount
+		return ErrSenderDoesntExist
 	}
 	if coinsAmount < 0 {
-		return ErrNotEnoughMoney
+		return ErrNotEnoughCoins
 	}
 
 	var toUserID uuid.UUID
@@ -112,7 +116,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 		request.CoinsAmount,
 	)
 	if err != nil {
-		return ErrInsertTransRecord
+		return ErrSenderDoesntExist
 	}
 
 	err = tx.Commit(ctx)
@@ -123,16 +127,20 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 	return nil
 }
 
-func (s *TransactionStrg) GetByFromUserID(ctx context.Context, request *strgDto.GetTransactionByFromUserIDRequest) (response *strgDto.GetTransactionByToUserIDResponse, err error) {
-query := `select users.username, transactions.coins_amount from transactions join users on transactions.from_user_id = users.id where transactions.to_user_id = $1`
+func (s *TransactionStrg) GetToUserID(ctx context.Context, request *strgDto.GetTransactionToUserIDRequest) (response *strgDto.GetTransactionToUserIDResponse, err error) {
+	query := `select users.username, transactions.coins_amount from transactions join users on transactions.from_user_id = users.id where transactions.to_user_id = $1`
 
 	rows, err := s.dbConnector.Query(
 		ctx,
 		query,
 		request.UserID,
 	)
+
 	if err != nil {
-		return nil, ErrGetTransFromUser
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrGetTransNoSuchUserID
+		}
+		return nil, ErrGetTransToUser
 	}
 	defer rows.Close()
 
@@ -144,19 +152,20 @@ query := `select users.username, transactions.coins_amount from transactions joi
 			&transaction.CoinsAmount,
 		)
 		if err != nil {
+
 			return nil, ErrSelectQueryRow
 		}
 		transactions = append(transactions, &transaction)
 	}
 
-	response = &strgDto.GetTransactionByToUserIDResponse{
+	response = &strgDto.GetTransactionToUserIDResponse{
 		Transactions: transactions,
 	}
 
 	return response, nil
 }
 
-func (s *TransactionStrg) GetByToUserID(ctx context.Context, request *strgDto.GetTransactionByToUserIDRequest) (response *strgDto.GetTransactionByToUserIDResponse, err error) {
+func (s *TransactionStrg) GetFromUserID(ctx context.Context, request *strgDto.GetTransactionFromUserIDRequest) (response *strgDto.GetTransactionFromUserIDResponse, err error) {
 	query := `select users.username, transactions.coins_amount from transactions join users on transactions.to_user_id = users.id where transactions.from_user_id = $1`
 
 	rows, err := s.dbConnector.Query(
@@ -165,6 +174,9 @@ func (s *TransactionStrg) GetByToUserID(ctx context.Context, request *strgDto.Ge
 		request.UserID,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrGetTransNoSuchUserID
+		}
 		return nil, ErrGetTransToUser
 	}
 	defer rows.Close()
@@ -182,7 +194,7 @@ func (s *TransactionStrg) GetByToUserID(ctx context.Context, request *strgDto.Ge
 		transactions = append(transactions, &transaction)
 	}
 
-	response = &strgDto.GetTransactionByToUserIDResponse{
+	response = &strgDto.GetTransactionFromUserIDResponse{
 		Transactions: transactions,
 	}
 

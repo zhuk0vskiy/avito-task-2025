@@ -43,7 +43,7 @@ func TestGetInfoSuccess(t *testing.T) {
 	mockBoughtMerchIntf.On("GetByUserID", ctx, &strgDto.GetBoughtMerchByUserIDRequest{UserID: id}).
 		Return(&strgDto.GetBoughtMerchByUserIDResponse{Merchs: []*entity.Merch{}}, nil)
 
-	mockTransactionIntf.On("GetFromUserID", ctx, &strgDto.GetTransactionToUserIDRequest{UserID: id}).
+	mockTransactionIntf.On("GetToUserID", ctx, &strgDto.GetTransactionToUserIDRequest{UserID: id}).
 		Return(&strgDto.GetTransactionToUserIDResponse{Transactions: []*entity.Transaction{}}, nil)
 
 	mockTransactionIntf.On("GetFromUserID", ctx, &strgDto.GetTransactionFromUserIDRequest{UserID: id}).

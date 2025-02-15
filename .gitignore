@@ -70,4 +70,7 @@ go.work
 
 .qodo
 
+__pycache__
+venv
 mocks
+results

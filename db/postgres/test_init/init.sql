@@ -1,5 +1,16 @@
 create extension if not exists pgcrypto;
 
+-- create user test_admin with password 'test_avito';
+-- create database test_shop;
+-- grant all privileges on database test_shop to test_admin;
+
+-- create role readaccess;
+-- grant connect on database shop to readaccess;
+-- grant select on all tables in schema public to readaccess;
+-- create user admin_ro with password 'avito_ro';
+-- grant readaccess to admin_ro;
+-- alter default privileges in schema public grant select on tables to readaccess;
+
 create table if not exists merchs
 (
     id uuid primary key default gen_random_uuid(),
@@ -15,6 +26,8 @@ create table if not exists users
     coins_amount integer not null
 );
 
+create index idx_username on users using hash (username);
+
 create table if not exists bought_merchs
 (
     id uuid primary key default gen_random_uuid(),
@@ -22,6 +35,8 @@ create table if not exists bought_merchs
     merch_id uuid not null references merchs(id),
     amount smallint
 );
+
+create index idx_bought_merch_amount on bought_merchs using hash (amount);
 
 create table if not exists transactions
 (
