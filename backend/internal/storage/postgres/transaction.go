@@ -58,7 +58,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
         from users u1
         join users u2 ON u2.username = $2
         where u1.id = $1
-        for update nowait`
+        for update`
 
     var (
         senderID uuid.UUID
@@ -90,7 +90,7 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 
     query = `
         update users 
-        set coins_amount = CASE 
+        set coins_amount = case
             when id = $1 THEN coins_amount - $3
             when id = $2 THEN coins_amount + $3
         end

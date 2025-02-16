@@ -6,7 +6,6 @@ up-local-backend:
 	sleep 5
 	cd backend && go run cmd/main.go
 
-
 .PHONY: build-backend-image
 build-backend-image:
 	cd backend && docker build -t avito-shop-backend . --no-cache --progress=plain

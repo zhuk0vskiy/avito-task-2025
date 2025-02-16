@@ -64,7 +64,7 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.InsertBou
         select id, cost 
         from merchs 
         where type = $1 
-        for update nowait`
+        for update`
 
 	err = tx.QueryRow(ctx, query, request.Type).Scan(&merchID, &cost)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *BoughtMerchStrg) Insert(ctx context.Context, request *strgDto.InsertBou
         select coins_amount 
         from users 
         where id = $1 
-        for update nowait`
+        for update`
 
 	err = tx.QueryRow(ctx, query, request.UserID).Scan(&userCoins)
 	if err != nil {

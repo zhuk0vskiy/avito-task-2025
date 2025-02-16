@@ -12,15 +12,13 @@ services:
         POSTGRES_HOST: 172.20.2.1
         POSTGRES_PORT: 5432
         HTTP_PORT: 8080
-        POSTGRES_MAX_CONNS: 1000
+        POSTGRES_MAX_CONNS: 100
         LOGS_FILE: /app/logs/out.log
       depends_on:
         postgres-master:
             condition: service_healthy   
       ports:
         - "8080:8080"
-      mem_reservation: 1G
-      cpus: 2
       networks:
         avito:
           ipv4_address: 172.20.1.1
@@ -100,8 +98,6 @@ services:
       volumes:
         - ./db/postgres/init:/docker-entrypoint-initdb.d
         - ./db/postgres/data:/var/lib/postgresql/data
-      mem_reservation: 1G
-      cpus: 2
       ports:
         - "5438:5432"
       networks:
@@ -198,9 +194,7 @@ services:
         - K6_OUT=influxdb=http://172.20.55.1:8086/k6
       volumes:
         - ./load-testing/k6/scripts:/scripts
-      command: ["run", "/scripts/load.js"]
-      mem_reservation: 1G
-      cpus: 2
+      command: ["run", "/scripts/test.js"]
       networks:
         avito: 
           ipv4_address: 172.20.55.3
