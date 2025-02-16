@@ -1,0 +1,280 @@
+name: avito-task-2025
+
+services:
+    backend-1:
+      container_name: backend-1
+      # build: ./backend/
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: avito
+        POSTGRES_DATABASE: shop
+        POSTGRES_HOST: 172.20.2.1
+        POSTGRES_PORT: 5432
+        HTTP_PORT: 8080
+        POSTGRES_MAX_CONNS: 100
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-master:
+            condition: service_healthy   
+      ports:
+        - "8080:8080"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.1
+      volumes:
+        - ./logs/backend-1:/app/logs
+
+
+    backend-2:
+      container_name: backend-2
+      # build: ./backend/
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: avito
+        POSTGRES_DATABASE: shop
+        POSTGRES_HOST: 172.20.2.1
+        POSTGRES_PORT: 5432
+        HTTP_PORT: 8082
+        POSTGRES_MAX_CONNS: 100
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-master:
+            condition: service_healthy   
+      ports:
+        - "8082:8082"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.2
+      volumes:
+        - ./logs/backend-2:/app/logs
+
+  
+    backend-test:
+      container_name: backend-test
+      image: avito-shop-backend
+      environment:
+        POSTGRES_USER: test_admin
+        POSTGRES_PASSWORD: test_avito
+        POSTGRES_DATABASE: test_shop
+        POSTGRES_HOST: 172.20.2.99
+        POSTGRES_PORT: 5432
+        POSTGRES_MAX_CONNS: 100
+        HTTP_PORT: 8089
+        LOGS_FILE: /app/logs/out.log
+      depends_on:
+        postgres-test:
+            condition: service_healthy   
+      ports:
+        - "8089:8089"
+      networks:
+        avito:
+          ipv4_address: 172.20.1.99
+      volumes:
+        - ./logs/backend-test:/app/logs
+
+        
+    postgres-master:
+      container_name: postgres-master
+      image: bitnami/postgresql:16
+      privileged: true
+      healthcheck:
+        test: ["CMD-SHELL", "sh -c 'pg_isready -U admin -d shop'"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+      environment:
+        POSTGRES_REPLICATION_MODE: master
+        POSTGRES_REPLICATION_USER: repl_user
+        POSTGRES_REPLICATION_PASSWORD: repl_password
+        POSTGRES_SSLMODE: disable
+        POSTGRES_DATABASE: shop
+        POSTGRES_USERNAME: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_PORT: 5432
+        
+        TZ: "Europe/Moscow"
+      volumes:
+        - ./db/postgres/init:/docker-entrypoint-initdb.d
+        - ./db/postgres/data:/var/lib/postgresql/data
+      ports:
+        - "5438:5432"
+      networks:
+        avito:
+          ipv4_address: 172.20.2.1
+
+    postgres-slave:
+      container_name: "postgres-slave"
+      image: bitnami/postgresql:16
+      privileged: true
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -d shop -U admin"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+      environment:
+        POSTGRES_REPLICATION_MODE: slave
+        POSTGRES_REPLICATION_USER: repl_user
+        POSTGRES_REPLICATION_PASSWORD: repl_password
+        POSTGRES_MASTER_HOST: 172.20.2.1
+        POSTGRES_MASTER_PORT_NUMBER: 5432
+        POSTGRES_SSLMODE: disable
+        ALLOW_EMPTY_PASSWORD: yes
+        POSTGRES_PORT: 5432
+        
+        TZ: "Europe/Moscow"
+      depends_on:
+        postgres-master:
+          condition: service_healthy
+      ports:
+        - "5439:5432"
+      networks:
+        avito:
+          ipv4_address: 172.20.2.2
+
+    postgres-test:
+      container_name: postgres-test
+      image: bitnami/postgresql:16
+      healthcheck:
+        test: ["CMD-SHELL", "sh -c 'pg_isready -U test_admin -d test_shop'"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+      environment:
+        POSTGRES_DATABASE: test_shop
+        POSTGRES_USERNAME: test_admin
+        POSTGRES_PASSWORD: test_avito
+        
+        POSTGRES_PORT: 5432
+        TZ: "Europe/Moscow"
+      volumes:
+        - ./db/postgres/test_init:/docker-entrypoint-initdb.d
+      ports:
+        - "9999:5432"
+      networks:
+        avito:
+          ipv4_address: 172.20.2.99
+
+    influxdb:
+      container_name: influxbox
+      image: influxdb:1.8
+      environment:
+        - INFLUXDB_DB=k6
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.1
+      ports:
+        - "8086:8086"
+    
+    grafana:
+      container_name: grafana
+      image: grafana/grafana:8.5.21
+      ports:
+        - "3000:3000"
+      environment:
+        - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+        - GF_AUTH_ANONYMOUS_ENABLED=true
+        - GF_AUTH_BASIC_ENABLED=false
+        - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      volumes:
+        - ./grafana/k6/dashboards:/var/lib/grafana/dashboards
+        - ./grafana/k6/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+        - ./grafana/k6/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+        - ./grafana/postgres/dashboard:/etc/extra-config/grafana
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.2
+
+
+    k6:
+      container_name: k6
+      image: grafana/k6:latest
+      environment:
+        - K6_OUT=influxdb=http://172.20.55.1:8086/k6
+      volumes:
+        - ./load-testing/k6/scripts:/scripts
+      command: ["run", "/scripts/test.js"]
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.3
+      ports:
+        - "6565:6565"
+
+    postgres-exporter:
+      container_name: postgres_exporter
+      image: quay.io/prometheuscommunity/postgres-exporter
+
+      environment:
+        DATA_SOURCE_URI: 172.20.2.1:5432/shop?sslmode=disable
+        DATA_SOURCE_USER: postgres
+        DATA_SOURCE_PASS: postgres
+      # volumes:
+      #   - ./prometheus:/etc/postgres_exporter
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.4
+      ports:
+        - "9187:9187"
+      command: --collector.long_running_transactions
+
+
+    prometheus:
+      container_name: prometheus
+      image: prom/prometheus
+      volumes:
+        - ./prometheus:/etc/prometheus
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.5
+      ports:
+        - "9090:9090"
+    pgscv:
+      container_name: pgscv
+      image: weaponry/pgscv:latest
+      environment:
+        PGSCV_LISTEN_ADDRESS: 0.0.0.0:9890
+        PGSCV_DISABLE_COLLECTORS: system
+        DATABASE_DSN: postgres://postgres:postgres@172.20.2.1:5432/shop?sslmode=disable
+      networks:
+        avito: 
+          ipv4_address: 172.20.55.6
+      ports:
+        - "9890:9890"
+# docker run --rm --name pgscv -ti -e PGSCV_LISTEN_ADDRESS=0.0.0.0:9890 -e PGSCV_DISABLE_COLLECTORS=system -e DATABASE_DSN="postgresql://postgres:secret@db/postgres" -p 9890:9890 --network example weaponry/pgscv:latest
+
+    nginx:
+      container_name: nginx
+      image: nginx:1.27
+      ports:
+        - "80:80"
+      volumes:
+        - ./nginx/conf:/etc/nginx
+        - ./nginx/logs:/etc/nginx/logs
+      depends_on:
+        backend-1:
+          condition: service_started
+        backend-2:
+          condition: service_started
+        # backend-3:
+        #   condition: service_started
+      networks:
+        avito:
+          ipv4_address: 172.20.22.1
+
+    golang-lint:
+      image: golangci/golangci-lint:v1.63.4
+      volumes:
+        - ./backend:/app
+      working_dir: /app
+      command: golangci-lint run -v
+      networks:
+        avito:
+          ipv4_address: 172.20.23.1
+
+networks:
+  avito:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

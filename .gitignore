@@ -69,3 +69,8 @@ go.work
 /.idea/
 
 .qodo
+
+__pycache__
+venv
+mocks
+results
