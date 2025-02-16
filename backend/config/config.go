@@ -47,6 +47,7 @@ type PostgresConfig struct {
 	Password string `yaml:"password" env:"POSTGRES_PASSWORD"`
 	Database string `yaml:"database" env:"POSTGRES_DATABASE"`
 	Driver   string `yaml:"driver" env:"POSTGRES_DRIVER" env-default:"postgres"`
+	MaxConns int    `yaml:"maxConns" env:"POSTGRES_MAX_CONNS" env-default:"5"`
 }
 
 func NewConfig(envPath string) (*Config, error) {

@@ -5,7 +5,7 @@ import { Rate } from 'k6/metrics';
 
 const slowResponseRate = new Rate('slow_responses');
 
-let authToken = '';
+
 
 export const options = {
   scenarios: {
@@ -38,7 +38,7 @@ export const options = {
       startRate: 0,
       timeUnit: '1s',
       preAllocatedVUs: 10,
-      maxVUs: 3000,
+      maxVUs: 50,
       stages: [
         { duration: '1m', target: 500 },
         { duration: '4m', target: 500 },
@@ -47,6 +47,9 @@ export const options = {
     }
   },
 };
+
+let authToken = '';
+let userTokens = [];
 
 const predefinedUsernames = [
   "user1_test",
@@ -155,16 +158,86 @@ export function sendCoinRequest(authToken) {
   }
 }
 
+// export function setup() {
+//   console.log('Setup: Creating test users...');
+  
+//   const createdUsers = [];
+  
+//   // Создаем тестовых пользователей
+//   for (const username of predefinedUsernames) {
+//       const payload = {
+//           "username": username,
+//           "password": "sdfgsgdfgsg",
+//       };
+
+//       const params = {
+//           headers: {
+//               'accept': 'application/json',
+//               'Content-Type': 'application/json',
+//           },
+//       };
+
+//       // Регистрируем пользователя
+//       const response = http.post('http://172.20.1.1:8081/api/register', JSON.stringify(payload), params);
+      
+//       // Проверяем результат
+//       const success = check(response, {
+//           'User registration successful': (r) => r.status === 200// 409 если пользователь уже существует
+//       });
+
+//       if (success) {
+//           createdUsers.push(username);
+//       }
+
+//       // Небольшая пауза между регистрациями
+//       sleep(0.1);
+//   }
+
+//   console.log(`Setup completed. Created/Verified ${createdUsers.length} users`);
+  
+//   // Возвращаем результаты setup
+//   return {
+//       setupCompleted: true,
+//       usersCreated: createdUsers.length,
+//       timestamp: new Date().toISOString()
+//   };
+// }
+
+// Обновляем основную функцию
+// const actions = [
+//   () => {
+//       console.log("Action 1: Sending coins");
+//       sendCoinRequest(authToken);
+//   },
+//   // () => {
+//   //     console.log("Action 2: Getting info");
+//   //     getInfoRequest(authToken);
+//   // },
+//   // () => {
+//   //     console.log("Action 3: Buying merch");
+//   //     buyMerchRequest(authToken);
+//   // }
+// ];
+
+// Счетчик для отслеживания текущей функции
+let currentActionIndex = 0;
+
+function getRandomToken() {
+  if (userTokens.length === 0) return null;
+  return userTokens[Math.floor(Math.random() * userTokens.length)].token;
+}
+
+
 export function setup() {
-  console.log('Setup: Creating test users...');
+  console.log('Setup: Getting tokens for users...');
   
-  const createdUsers = [];
-  
-  // Создаем тестовых пользователей
+  // Очищаем массив перед заполнением
+  userTokens = [];
+
   for (const username of predefinedUsernames) {
       const payload = {
           "username": username,
-          "password": "sdfgsgdfgsg",
+          "password": "sdfgsgdfgsg"
       };
 
       const params = {
@@ -174,44 +247,97 @@ export function setup() {
           },
       };
 
-      // Регистрируем пользователя
-      const response = http.post('http://172.20.1.1:8081/api/register', JSON.stringify(payload), params);
-      
-      // Проверяем результат
-      const success = check(response, {
-          'User registration successful': (r) => r.status === 200// 409 если пользователь уже существует
-      });
-
-      if (success) {
-          createdUsers.push(username);
+      try {
+          const authResponse = http.post('http://172.20.1.1:8081/api/auth', JSON.stringify(payload), params);
+          console.log(`Auth response for ${username}: ${authResponse.status}, body: ${authResponse.body}`);
+          
+          if (authResponse.status === 200) {
+              const responseBody = authResponse.json();
+              const token = responseBody.token;
+              
+              if (token) {
+                  userTokens.push({
+                      username: username,
+                      token: token
+                  });
+                  console.log(`Token obtained for: ${username}`);
+              } else {
+                  console.error(`No token in response for ${username}`);
+              }
+          } else {
+              console.error(`Failed auth for ${username}, status: ${authResponse.status}`);
+          }
+          
+      } catch (error) {
+          console.error(`Error processing user ${username}: ${error.message}`);
       }
-
-      // Небольшая пауза между регистрациями
+      
       sleep(0.1);
   }
 
-  console.log(`Setup completed. Created/Verified ${createdUsers.length} users`);
+  console.log(`Setup completed. Got tokens for ${userTokens.length} users`);
   
-  // Возвращаем результаты setup
+  if (userTokens.length === 0) {
+      throw new Error('Failed to obtain any tokens');
+  }
+
   return {
       setupCompleted: true,
-      usersCreated: createdUsers.length,
-      timestamp: new Date().toISOString()
+      tokensCount: userTokens.length,
+      tokens: userTokens // передаем токены в data
   };
 }
 
-// Обновляем основную функцию
+function getRandomToken() {
+  if (!userTokens || userTokens.length === 0) {
+      console.error('userTokens is empty or undefined');
+      return null;
+  }
+  return userTokens[Math.floor(Math.random() * userTokens.length)].token;
+}
+
+// Основные действия
+const actions = [
+  (token) => {
+      console.log("Sending coins");
+      const randomUser = userTokens[Math.floor(Math.random() * userTokens.length)].username;
+      
+      const payload = {
+          "toUsername": randomUser,
+          "amount": Math.floor(Math.random() * 10) + 1
+      };
+
+      const params = {
+          headers: {
+              'accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+          },
+      };
+
+      return http.post('http://172.20.1.1:8081/api/sendCoin', JSON.stringify(payload), params);
+  }
+];
+
+
 export default function (data) {
-  // Проверяем, что setup прошел успешно
-  if (!data.setupCompleted) {
-      console.error('Setup was not completed successfully');
+  if (!data.setupCompleted || !data.tokens || data.tokens.length === 0) {
+      console.error('Setup was not completed successfully or no tokens available');
       return;
   }
 
-  // Используем authToken вместо token
-  authToken = getAuthToken();
-  // getInfoRequest(authToken);
-  sendCoinRequest(authToken);
-  
-  sleep(Math.random() * 4 + 1);
+  // Обновляем глобальный массив токенов из data
+  userTokens = data.tokens;
+
+  const token = getRandomToken();
+  if (!token) {
+      console.error('Failed to get random token');
+      return;
+  }
+
+  // const randomAction = actions[Math.floor(Math.random() * actions.length)];
+  // randomAction(token);
+  sendCoinRequest(token)
+
+  sleep(0.1);
 }

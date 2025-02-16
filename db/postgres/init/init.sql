@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+alter system set max_connections = 100;
 
 create user admin with password 'avito';
 grant all privileges on database shop to admin;

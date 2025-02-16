@@ -12,3 +12,4 @@ jwt:
 database:
   postgres:
     driver: postgres
+    maxConns: 20
