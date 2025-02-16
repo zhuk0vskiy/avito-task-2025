@@ -19,8 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	// "github.com/go-chi/cors"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
 
@@ -73,10 +72,10 @@ func NewChiServer(cfg config.HTTPConfig, jwtAuth *jwtauth.JWTAuth, a *app.App) *
 	mux.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"https://*", "http://*"},
 		AllowedMethods: []string{"GET", "POST"},
-		AllowedHeaders: []string{"Authorization", "Content-Type",},
+		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	}))
 
-	mux.Use(middleware.Logger)
+	// mux.Use(middleware.Logger)
 	mux.Route("/api", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Post("/auth", auth.SignInHandler(a))

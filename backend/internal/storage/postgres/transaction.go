@@ -19,7 +19,7 @@ var (
 	ErrNotEnoughCoins       = errors.New("not enough coins to send")
 	ErrIncreaseCoinsAmount  = errors.New("failed to increase user coins amount")
 	ErrNoReceiveUser        = errors.New("receive user doesnt exist")
-	ErrSenderDoesntExist    = errors.New("failed to insert send coins trans record")
+	ErrSenderDoesntExist    = errors.New("receiver with this username doesnt exist")
 	ErrInsertCommitTrans    = errors.New("failed to commit send coins trans")
 	ErrGetTransNoSuchUserID = errors.New("no such user id")
 	ErrSelectQueryRow       = errors.New("error while quering select row")
@@ -40,23 +40,6 @@ func NewTransactionStrg(dbConnector *pgxpool.Pool) storage.TransactionIntf {
 }
 
 func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTransactionRequest) (err error) {
-
-	var receiverID uuid.UUID
-	query := `select id from users where username = $1`
-	err = s.dbConnector.QueryRow(
-		ctx,
-		query,
-		request.ToUsername,
-	).Scan(
-		&receiverID,
-	)
-	if err != nil {
-		return ErrReceiverDoesntExist
-	}
-	if receiverID == request.FromUserID {
-		return ErrSameUser
-	}
-
 	tx, err := s.dbConnector.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return ErrInsertTransStart
@@ -70,61 +53,68 @@ func (s *TransactionStrg) Insert(ctx context.Context, request *strgDto.InsertTra
 		}
 	}()
 
-	var coinsAmount int32
-	query = `update users set coins_amount = coins_amount - $1 where id = $2 returning coins_amount`
-	err = tx.QueryRow(
-		ctx,
-		query,
-		request.CoinsAmount,
-		request.FromUserID,
-	).Scan(
-		&coinsAmount,
-	)
+    query := `
+        select u1.id, u1.coins_amount, u2.id
+        from users u1
+        join users u2 ON u2.username = $2
+        where u1.id = $1
+        for update nowait`
 
-	if err != nil {
-		return ErrSenderDoesntExist
-	}
-	if coinsAmount < 0 {
-		return ErrNotEnoughCoins
-	}
+    var (
+        senderID uuid.UUID
+        senderBalance int32
+        receiverID uuid.UUID
+    )
 
-	var toUserID uuid.UUID
-	query = `
+    err = tx.QueryRow(
+        ctx,
+        query,
+        request.FromUserID,
+        request.ToUsername,
+    ).Scan(&senderID, &senderBalance, &receiverID)
+
+    if err != nil {
+        if errors.Is(err, pgx.ErrNoRows) {
+            return ErrReceiverDoesntExist
+        }
+        return ErrSelectQueryRow
+    }
+
+    if senderID == receiverID {
+        return ErrSameUser
+    }
+
+    if senderBalance < request.CoinsAmount {
+        return ErrNotEnoughCoins
+    }
+
+    query = `
         update users 
-        set coins_amount = coins_amount + $1
-        where id = $2
-        returning coins_amount, id`
-	err = tx.QueryRow(
-		ctx,
-		query,
-		request.CoinsAmount,
-		receiverID,
-	).Scan(
-		&coinsAmount,
-		&toUserID,
-	)
-	if err != nil {
-		return ErrIncreaseCoinsAmount
-	}
+        set coins_amount = CASE 
+            when id = $1 THEN coins_amount - $3
+            when id = $2 THEN coins_amount + $3
+        end
+        where id IN ($1, $2)`
 
-	query = `insert into transactions(from_user_id, to_user_id, coins_amount) values ($1, $2, $3)`
-	_, err = tx.Exec(
-		ctx,
-		query,
-		request.FromUserID,
-		toUserID,
-		request.CoinsAmount,
-	)
-	if err != nil {
-		return ErrSenderDoesntExist
-	}
+    _, err = tx.Exec(ctx, query, senderID, receiverID, request.CoinsAmount)
+    if err != nil {
+        return ErrIncreaseCoinsAmount
+    }
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return ErrInsertCommitTrans
-	}
+    query = `
+        insert into transactions (from_user_id, to_user_id, coins_amount) 
+        values ($1, $2, $3)`
 
-	return nil
+    _, err = tx.Exec(ctx, query, senderID, receiverID, request.CoinsAmount)
+    if err != nil {
+        return ErrSenderDoesntExist
+    }
+
+    if err = tx.Commit(ctx); err != nil {
+        return ErrInsertCommitTrans
+    }
+
+    return nil
 }
 
 func (s *TransactionStrg) GetToUserID(ctx context.Context, request *strgDto.GetTransactionToUserIDRequest) (response *strgDto.GetTransactionToUserIDResponse, err error) {

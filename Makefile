@@ -2,7 +2,7 @@ BUILD_DATE=$(shell date +%Y%m%d)
 
 .PHONY: up-local-backend
 up-local-backend:
-	docker compose up -d postgres-test
+	docker compose up -d postgres-master
 	sleep 5
 	cd backend && go run cmd/main.go
 
@@ -31,11 +31,6 @@ before-tests:
 after-tests:
 	docker compose stop postgres-test backend-test
 	docker compose rm -f postgres-test backend-test
-
-.PHONY: load-tests
-load-tests:
-	# @make before-tests
-	docker compose up -d influxdb grafana k6
 
 .PHONY: generate-mocks
 generate-mocks:
@@ -67,6 +62,11 @@ e2e-tests:
 	@make before-tests
 	cd backend && go test -v --race -count=1 "./tests/e2e"
 	@make after-tests
+
+.PHONY: load-tests
+load-tests:
+	@make up-backend
+	docker compose up -d influxdb grafana k6
 
 .PHONY: tests
 tests: unit-tests intgr-tests e2e-tests

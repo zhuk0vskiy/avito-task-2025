@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -21,6 +22,7 @@ type JwtPayload struct {
 type ManagerIntf interface {
 	GenerateAuthToken(id uuid.UUID) (tokenString string, err error)
 	GetStringClaimFromJWT(ctx context.Context, claim string) (strVal string, err error)
+	GinGetStringClaimFromJWT(ctx *gin.Context, claim string) (strVal string, err error)
 }
 
 type JwtManager struct {
@@ -56,26 +58,26 @@ func (m *JwtManager) GenerateAuthToken(id uuid.UUID) (tokenString string, err er
 	return tokenString, nil
 }
 
-// func (m *JwtManager) GetStringClaimFromJWT(ctx *gin.Context, claim string) (strVal string, err error) {
-// 	token, err := parseAuthHeader(ctx)
-// 	if err != nil {
-// 		return "", err
-// 	}
+func (m *JwtManager) GinGetStringClaimFromJWT(ctx *gin.Context, claim string) (strVal string, err error) {
+	token, err := parseAuthHeader(ctx)
+	if err != nil {
+		return "", err
+	}
 
-// 	strVal, err = parseToken(token, claim, m.jwtKey)
+	strVal, err = parseToken(token, claim, m.jwtKey)
 
-// 	id, ok := claims[claim]
-// 	if !ok {
-// 		return "", fmt.Errorf("failed getting claim '%s' from JWT token", claim)
-// 	}
+	// id, ok := claims[claim]
+	// if !ok {
+	// 	return "", fmt.Errorf("failed getting claim '%s' from JWT token", claim)
+	// }
 
-// 	strVal, ok = id.(string)
-// 	if !ok {
-// 		return "", fmt.Errorf("converting interface to string")
-// 	}
+	// strVal, ok = id.(string)
+	// if !ok {
+	// 	return "", fmt.Errorf("converting interface to string")
+	// }
 
-// 	return strVal, err
-// }
+	return strVal, err
+}
 
 func (m *JwtManager) GetStringClaimFromJWT(ctx context.Context, claim string) (strVal string, err error) {
 	_, claims, err := jwtauth.FromContext(ctx)
@@ -115,9 +117,9 @@ func (m *JwtManager) GetStringClaimFromJWT(ctx context.Context, claim string) (s
 	// return strVal, err
 }
 
-func parseAuthHeader(ctx context.Context) (string, error) {
-	// header := c.GetHeader("Authorization")
-	header, _ := ctx.Value("Authorization").(string)
+func parseAuthHeader(c *gin.Context) (string, error) {
+	header := c.GetHeader("Authorization")
+	// header, _ := ctx.Va
 	// fmt.Println(ok)
 	if header == "" {
 		return "", fmt.Errorf("empty auth header")

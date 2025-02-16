@@ -31,9 +31,9 @@ export const options = {
 			// 	{ duration: '1m', target: 0 },
 			// ],
 			stages: [ // auth + buy item + send coins + get info
-				{ duration: '1m', target: 250 },
-				{ duration: '3m', target: 250 },
-				{ duration: '1m', target: 0 },
+				{ duration: '1m', target: 333 },
+				{ duration: '3m', target: 333 },
+				// { duration: '1m', target: 0 },
 			],
 		}
 	},
@@ -68,7 +68,7 @@ export function authLoadTest() {
 		},
 	};
 
-	const response = http.post('http://172.20.1.1:8081/api/auth', JSON.stringify(payload), params);
+	const response = http.post('http://172.20.1.1:8080/api/auth', JSON.stringify(payload), params);
 
 	check(response, {
 		'Status is 200': (r) => r.status === 200,
@@ -97,7 +97,7 @@ export function buyItemLoadTest(token) {
 		},
 	};
 
-	const response = http.get(`http://172.20.1.1:8081/api/buy/${item}`, params);
+	const response = http.get(`http://172.20.1.1:8080/api/buy/${item}`, params);
 
 	check(response, {
 		'Buy item status is 200': (r) => r.status === 200,
@@ -118,7 +118,7 @@ export function getInfoLoadTest(token) {
 		},
 	};
 
-	const response = http.get(`http://172.20.1.1:8081/api/info`, params);
+	const response = http.get(`http://172.20.1.1:8080/api/info`, params);
 
 	check(response, {
 		'Get info status is 200': (r) => r.status === 200,
@@ -150,7 +150,7 @@ export function sendCoinsLoadTest(token) {
 		},
 	};
 
-	const response = http.post('http://172.20.1.1:8081/api/sendCoin', JSON.stringify(payload), params);
+	const response = http.post('http://172.20.1.1:8080/api/sendCoin', JSON.stringify(payload), params);
 
 	check(response, {
 		'Send coins status is 200 or 400': (r) => r.status === 200 || r.status === 400,
@@ -169,9 +169,9 @@ export function sendCoinsLoadTest(token) {
 
 export default function () {
 	let token = authLoadTest();
-	buyItemLoadTest(token)
+	// buyItemLoadTest(token)
 
-	sendCoinsLoadTest(token)
+	// sendCoinsLoadTest(token)
 
 	getInfoLoadTest(token)
 

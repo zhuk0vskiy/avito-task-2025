@@ -40,7 +40,7 @@ func (c *Controller) SendCoinHandler(ctx *gin.Context) {
 		return
 	}
 
-	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx, "id")
+	id, err := c.jwtMngIntf.GinGetStringClaimFromJWT(ctx, "id")
 	if err != nil {
 		errorStr = "jwt token is invalid"
 		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())

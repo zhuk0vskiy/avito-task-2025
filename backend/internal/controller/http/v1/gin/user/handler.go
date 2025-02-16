@@ -32,7 +32,7 @@ func (c *Controller) GetInfoHandler(ctx *gin.Context) {
 	var errorStr string
 	// fmt.Println(ctx.GetHeader("Authorization"))
 	// fmt.Println(ctx.Request.Context())
-	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx.Request.Context(), "id")
+	id, err := c.jwtMngIntf.GinGetStringClaimFromJWT(ctx, "id")
 	if err != nil {
 		errorStr = "jwt token is invalid"
 		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())

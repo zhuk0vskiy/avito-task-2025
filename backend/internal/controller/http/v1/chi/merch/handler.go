@@ -5,7 +5,6 @@ import (
 	v1 "avito-task-2025/backend/internal/controller/http/v1"
 	svcDto "avito-task-2025/backend/internal/service/dto"
 	"encoding/json"
-	"fmt"
 
 	"net/http"
 
@@ -17,9 +16,7 @@ func BuyMerchHandler(a *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//start := time.Now()
 
-		fmt.Println(chi.URLParam(r, "item"))
 		item := chi.URLParam(r, "item")
-		fmt.Println(item)
 
 		id, err := a.JwtMngIntf.GetStringClaimFromJWT(r.Context(), "id")
 		if err != nil {

@@ -40,8 +40,4 @@ jobs:
 
       - name: Test
         run: |
-          make unit-tests
-
-      # - name: Stop services
-      #   run:
-      #     docker-compose down
+          make tests

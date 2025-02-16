@@ -21,6 +21,7 @@ func NewTestConfig(migrationsDir string) (*migrate.Migrate, *config.Config) {
 	user := "test_admin"
 	password := "test_avito"
 	driver := "postgres"
+	maxConns := 5
 
 	m, err := migrate.New(
 		migrationsDir,
@@ -37,10 +38,11 @@ func NewTestConfig(migrationsDir string) (*migrate.Migrate, *config.Config) {
 				User:     user,
 				Password: password,
 				Driver:   driver,
+				MaxConns: maxConns,
 			},
 		},
 		Jwt: config.JwtConfig{
-			Key:         "testAvtitoKey",
+			Key:         "testAvitoKey",
 			ExpTimeHour: 1,
 		},
 	}

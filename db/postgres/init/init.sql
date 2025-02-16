@@ -1,5 +1,5 @@
 create extension if not exists pgcrypto;
-alter system set max_connections = 100;
+alter system set max_connections = 1000;
 
 create user admin with password 'avito';
 grant all privileges on database shop to admin;
@@ -50,6 +50,9 @@ create table if not exists transactions
     to_user_id uuid not null references users(id),
     coins_amount smallint not null
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bought_merchs_user_merch 
+ON bought_merchs(user_id, merch_id);
 
 insert into merchs(type, cost) 
 values 

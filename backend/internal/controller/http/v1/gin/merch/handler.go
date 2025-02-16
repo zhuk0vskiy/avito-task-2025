@@ -29,7 +29,7 @@ func NewMerchController(loggerIntf logger.Interface, merchSvcIntf service.MerchI
 func (c *Controller) BuyMerchHandler(ctx *gin.Context) {
 	var errorStr string
 
-	id, err := c.jwtMngIntf.GetStringClaimFromJWT(ctx, "id")
+	id, err := c.jwtMngIntf.GinGetStringClaimFromJWT(ctx, "id")
 	if err != nil {
 		errorStr = "jwt token is invalid"
 		c.loggerIntf.Errorf("%s: %s", errorStr, err.Error())

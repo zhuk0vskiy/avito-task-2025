@@ -46,6 +46,9 @@ create table if not exists transactions
     coins_amount smallint not null
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bought_merchs_user_merch 
+ON bought_merchs(user_id, merch_id);
+
 insert into merchs(type, cost) 
 values 
 ('t-shirt', 80),

@@ -38,10 +38,10 @@ export const options = {
       startRate: 0,
       timeUnit: '1s',
       preAllocatedVUs: 10,
-      maxVUs: 50,
+      maxVUs: 3000,
       stages: [
-        { duration: '1m', target: 500 },
-        { duration: '4m', target: 500 },
+        { duration: '1m', target: 1000 },
+        { duration: '4m', target: 1000 },
         // { duration: '1m', target: 0 },
       ],
     }
@@ -297,13 +297,34 @@ function getRandomToken() {
 }
 
 // Основные действия
+function getUserIdFromToken(token) {
+  try {
+      const base64Payload = token.split('.')[1];
+      const payload = JSON.parse(atob(base64Payload));
+      return payload.id;
+  } catch (e) {
+      console.error('Failed to parse token:', e);
+      return null;
+  }
+}
+
+// Модифицируем действия
 const actions = [
   (token) => {
-      console.log("Sending coins");
-      const randomUser = userTokens[Math.floor(Math.random() * userTokens.length)].username;
-      
+      const senderId = getUserIdFromToken(token);
+      if (!senderId) {
+          console.error('Failed to get sender ID from token');
+          return;
+      }
+
+      // Получаем случайного получателя из массива токенов
+      let receiver;
+      do {
+          receiver = userTokens[Math.floor(Math.random() * userTokens.length)];
+      } while (receiver.id === senderId); // Сравниваем ID вместо username
+
       const payload = {
-          "toUsername": randomUser,
+          "toUsername": receiver.username,
           "amount": Math.floor(Math.random() * 10) + 1
       };
 
