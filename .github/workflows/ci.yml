@@ -40,4 +40,5 @@ jobs:
 
       - name: Test
         run: |
-          make tests
+          make unit-tests
+          make intgr-tests
