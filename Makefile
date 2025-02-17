@@ -1,5 +1,9 @@
 BUILD_DATE=$(shell date +%Y%m%d)
 
+.PHONY: run
+run:
+	docker compose up -d --build
+
 .PHONY: up-local-backend
 up-local-backend:
 	docker compose up -d postgres-master

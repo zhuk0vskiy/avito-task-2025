@@ -1,8 +1,15 @@
-# <span style="color:#C0BFEC">🐣 **Тестовое задание для стажёра Backend-направления (зимняя волна 2025)**
+# <span style="color:#C0BFEC">🐣 **(FIX) Тестовое задание для стажёра Backend-направления (зимняя волна 2025)**
 
 ![build workflow](https://github.com/zhuk0vskiy/avito-task-2025/actions/workflows/ci.yml/badge.svg)
 
 Вся история разработки в ветке **dev**
+
+## <span style="color:#C0BFEC">🚀 Запуск 
+
+`docker compose up -d --build`
+или
+`make run`
+
 
 ## <span style="color:#C0BFEC">👕 Магазин мерча
 
@@ -73,7 +80,7 @@
 
 ![chi_all_1](./docs/inc/chi_all_1.jpg)
 
-![gin_all_2](./docs/inc/chi_all_1.jpg)
+![gin_all_2](./docs/inc/chi_all_2.jpg)
 
 
 ## <span style="color:#C0BFEC">❓ Диллемы при разработке
