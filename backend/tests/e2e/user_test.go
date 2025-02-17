@@ -48,7 +48,7 @@ func TestCoinRequests(t *testing.T) {
 	_ = e.GET("/info").
 		WithHeader("Authorization", "Bearer "+"ac5").
 		Expect().
-		Status(http.StatusBadRequest).
+		Status(http.StatusUnauthorized).
 		JSON().
 		Object().
 		NotEmpty().

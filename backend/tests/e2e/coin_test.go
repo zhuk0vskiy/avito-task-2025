@@ -64,7 +64,7 @@ func TestUserRequests(t *testing.T) {
 		WithHeader("Authorization", "Bearer "+"a1").
 		WithJSON(sendReq).
 		Expect().
-		Status(http.StatusBadRequest).
+		Status(http.StatusUnauthorized).
 		JSON().
 		Object().
 		NotEmpty().

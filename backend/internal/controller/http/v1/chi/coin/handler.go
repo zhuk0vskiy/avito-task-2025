@@ -19,7 +19,7 @@ func SendCoinHandler(a *app.App) http.HandlerFunc {
 		err := json.NewDecoder(r.Body).Decode(&httpReq)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
 			return
 		}
@@ -27,7 +27,7 @@ func SendCoinHandler(a *app.App) http.HandlerFunc {
 		id, err := a.JwtMngIntf.GetStringClaimFromJWT(r.Context(), "id")
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: "jwt token is invalid"})
 			return
 		}

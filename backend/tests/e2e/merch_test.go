@@ -39,7 +39,7 @@ func TestMerchRequests(t *testing.T) {
 	_ = e.GET("/buy/pen").
 		WithHeader("Authorization", "Bearer "+"a1").
 		Expect().
-		Status(http.StatusBadRequest).
+		Status(http.StatusUnauthorized).
 		JSON().
 		Object().
 		NotEmpty().

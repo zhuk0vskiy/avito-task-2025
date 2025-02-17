@@ -1,9 +1,3 @@
-BUILD_DATE=$(shell date +%Y%m%d)
-
-.PHONY: run
-run:
-	docker compose up -d --build
-
 .PHONY: up-local-backend
 up-local-backend:
 	docker compose up -d postgres-master
@@ -14,8 +8,9 @@ up-local-backend:
 build-backend-image:
 	cd backend && docker build -t avito-shop-backend . --no-cache --progress=plain
 
-.PHONY: up-backend
-up-backend:
+.PHONY: run
+run:
+	@make build-backend-image
 	docker compose up -d backend-1 postgres-master
 
 .PHONY: up-nginx
@@ -71,5 +66,14 @@ load-tests:
 	@make up-backend
 	docker compose up -d influxdb grafana k6
 
+.PHONY: monitoring
+monitoring:
+	docker compose up -d grafana prometheus postgres-exporter 
+
 .PHONY: tests
-tests: unit-tests intgr-tests e2e-tests
+tests: 
+	@make build-backend-image
+	@make unit-tests
+	@make intgr-tests
+	@make e2e-tests
+
