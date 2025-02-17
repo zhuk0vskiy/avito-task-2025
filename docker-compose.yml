@@ -3,7 +3,7 @@ name: avito-task-2025
 services:
     backend-1:
       container_name: backend-1
-      # build: ./backend/
+      build: ./backend/
       image: avito-shop-backend
       environment:
         POSTGRES_USER: admin
@@ -167,6 +167,7 @@ services:
       ports:
         - "8086:8086"
     
+
     grafana:
       container_name: grafana
       image: grafana/grafana:8.5.21
@@ -178,10 +179,9 @@ services:
         - GF_AUTH_BASIC_ENABLED=false
         - GF_SERVER_SERVE_FROM_SUB_PATH=true
       volumes:
-        - ./grafana/k6/dashboards:/var/lib/grafana/dashboards
-        - ./grafana/k6/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
-        - ./grafana/k6/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-        - ./grafana/postgres/dashboard:/etc/extra-config/grafana
+        - ./grafana/dashboards:/var/lib/grafana/dashboards
+        - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+        - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       networks:
         avito: 
           ipv4_address: 172.20.55.2
@@ -200,6 +200,7 @@ services:
           ipv4_address: 172.20.55.3
       ports:
         - "6565:6565"
+
 
     postgres-exporter:
       container_name: postgres_exporter
@@ -229,6 +230,8 @@ services:
           ipv4_address: 172.20.55.5
       ports:
         - "9090:9090"
+
+
     pgscv:
       container_name: pgscv
       image: weaponry/pgscv:latest
