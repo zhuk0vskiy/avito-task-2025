@@ -10,7 +10,7 @@ build-backend-image:
 
 .PHONY: run
 run:
-	@make build-backend-image
+	# @make build-backend-image
 	docker compose up -d backend-1 postgres-master
 
 .PHONY: up-nginx
@@ -70,10 +70,16 @@ load-tests:
 monitoring:
 	docker compose up -d grafana prometheus postgres-exporter 
 
+.PHONY: golint
+golint:
+	@make run
+	docker compose up -d golang-lint
+
 .PHONY: tests
 tests: 
 	@make build-backend-image
 	@make unit-tests
 	@make intgr-tests
 	@make e2e-tests
+	@make golint
 

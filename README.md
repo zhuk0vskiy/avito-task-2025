@@ -5,8 +5,7 @@
 Вся история разработки в ветке **dev**
 
 ## <span style="color:#C0BFEC">🚀 Запуск 
-
-`make run`
+`make build-backend-image` и `make run`
 
 ## <span style="color:#C0BFEC">👕 Магазин мерча
 

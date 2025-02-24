@@ -19,7 +19,7 @@ func SignInHandler(a *app.App) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
 			return
 		}
 
@@ -31,13 +31,13 @@ func SignInHandler(a *app.App) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(&v1.SignInResponse{
+		_ = json.NewEncoder(w).Encode(&v1.SignInResponse{
 			Token: svcResponse.JwtToken,
 		})
 	}
