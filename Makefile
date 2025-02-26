@@ -1,3 +1,5 @@
+DATE = $(shell date -I)
+
 .PHONY: up-local-backend
 up-local-backend:
 	docker compose up -d postgres-master
@@ -6,7 +8,13 @@ up-local-backend:
 
 .PHONY: build-backend-image
 build-backend-image:
-	cd backend && docker build -t avito-shop-backend . --no-cache --progress=plain
+	cd backend && docker build -t avito-shop-backend-local --no-cache --progress=plain .
+
+.PHONY: push-backend-image
+push-backend-image:
+	# @make build-backend-image
+	docker tag avito-shop-backend-local zhukovskiy/avito-shop-backend:local-$(DATE)
+	docker push zhukovskiy/avito-shop-backend:local-$(DATE)
 
 .PHONY: run
 run:
@@ -72,14 +80,12 @@ monitoring:
 
 .PHONY: golint
 golint:
-	@make run
 	docker compose up -d golang-lint
 
 .PHONY: tests
 tests: 
+	@make golint
 	@make build-backend-image
 	@make unit-tests
 	@make intgr-tests
 	@make e2e-tests
-	@make golint
-

@@ -4,7 +4,7 @@ services:
     backend-1:
       container_name: backend-1
       # build: ./backend/
-      image: avito-shop-backend
+      image: zhukovskiy/avito-shop-backend
       environment:
         POSTGRES_USER: admin
         POSTGRES_PASSWORD: avito
@@ -29,7 +29,7 @@ services:
     backend-2:
       container_name: backend-2
       # build: ./backend/
-      image: avito-shop-backend
+      image: zhukovskiy/avito-shop-backend
       environment:
         POSTGRES_USER: admin
         POSTGRES_PASSWORD: avito
@@ -53,7 +53,7 @@ services:
   
     backend-test:
       container_name: backend-test
-      image: avito-shop-backend
+      image: avito-shop-backend-local
       environment:
         POSTGRES_USER: test_admin
         POSTGRES_PASSWORD: test_avito
@@ -201,6 +201,7 @@ services:
           ipv4_address: 172.20.55.5
       ports:
         - "9090:9090"
+
 
     nginx:
       container_name: nginx
