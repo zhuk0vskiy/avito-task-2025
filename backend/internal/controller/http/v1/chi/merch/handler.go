@@ -21,8 +21,8 @@ func BuyMerchHandler(a *app.App) http.HandlerFunc {
 		id, err := a.JwtMngIntf.GetStringClaimFromJWT(r.Context(), "id")
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: "jwt token is invalid"})
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: "jwt token is invalid"})
 			return
 		}
 
@@ -30,7 +30,7 @@ func BuyMerchHandler(a *app.App) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
 			return
 		}
 
@@ -43,7 +43,7 @@ func BuyMerchHandler(a *app.App) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(v1.ErrorResponseStruct{Error: err.Error()})
 			return
 		}
 

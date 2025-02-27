@@ -1,4 +1,4 @@
-BUILD_DATE=$(shell date +%Y%m%d)
+DATE = $(shell date -I)
 
 .PHONY: up-local-backend
 up-local-backend:
@@ -8,10 +8,17 @@ up-local-backend:
 
 .PHONY: build-backend-image
 build-backend-image:
-	cd backend && docker build -t avito-shop-backend . --no-cache --progress=plain
+	cd backend && docker build -t avito-shop-backend-local --no-cache --progress=plain .
 
-.PHONY: up-backend
-up-backend:
+.PHONY: push-backend-image
+push-backend-image:
+	# @make build-backend-image
+	docker tag avito-shop-backend-local zhukovskiy/avito-shop-backend:local-$(DATE)
+	docker push zhukovskiy/avito-shop-backend:local-$(DATE)
+
+.PHONY: run
+run:
+	# @make build-backend-image
 	docker compose up -d backend-1 postgres-master
 
 .PHONY: up-nginx
@@ -67,5 +74,18 @@ load-tests:
 	@make up-backend
 	docker compose up -d influxdb grafana k6
 
+.PHONY: monitoring
+monitoring:
+	docker compose up -d grafana prometheus postgres-exporter 
+
+.PHONY: golint
+golint:
+	docker compose up -d golang-lint
+
 .PHONY: tests
-tests: unit-tests intgr-tests e2e-tests
+tests: 
+	@make golint
+	@make build-backend-image
+	@make unit-tests
+	@make intgr-tests
+	@make e2e-tests

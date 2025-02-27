@@ -6,4 +6,8 @@ datasources:
     access: proxy
     database: k6
     url: http://172.20.55.1:8086
-    isDefault: true
+  
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://172.20.55.5:9090
